@@ -19,6 +19,7 @@ import aiohttp
 from price_analyst.agent import get_bidding_prices
 from price_analyst.bid_tracker import fetch_and_save_bid_history
 from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
+from serving.meals_tracker import collect_turn_meals, save_to_firebase, init_firebase
 
 from datapizza.tools.mcp_client import MCPClient
 import os
@@ -29,6 +30,9 @@ load_dotenv()
 TEAM_ID = os.getenv("TEAM_ID")
 TEAM_API_KEY = os.getenv("SERVER_API_KEY")
 CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+# Etichetta della run corrente — modifica a ogni run ufficiale
+RUN_ID = os.getenv("RUN_ID", "main")
 
 BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 
@@ -195,6 +199,27 @@ async def serving_phase_started() -> None:
 
 async def end_turn() -> None:
     log("EVENT", "turn ended")
+
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("MEALS", f"Collecting meals data for turn {CURRENT_TURN_ID}...")
+        try:
+            db = init_firebase()
+            if db:
+                restaurants_data = await collect_turn_meals(CURRENT_TURN_ID)
+                if restaurants_data:
+                    await asyncio.to_thread(
+                        save_to_firebase, db, CURRENT_TURN_ID, RUN_ID, restaurants_data
+                    )
+                    log("MEALS", f"✅ Meals for turn {CURRENT_TURN_ID} saved to Firebase.")
+                else:
+                    log("MEALS", "⚠️  No meals data collected.")
+            else:
+                log("MEALS", "⚠️  Firebase not available, skipping meals save.")
+        except Exception as e:
+            log("ERROR", f"Meals tracker failed: {e}")
+    else:
+        log("MEALS", "⚠️  Unknown turn_id, skipping meals save.")
 
 
 async def client_spawned(data: dict[str, Any]) -> None:
