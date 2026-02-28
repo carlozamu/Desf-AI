@@ -22,6 +22,11 @@ from price_analyst.bid_tracker import fetch_and_save_bid_history
 from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
 from serving.meals_tracker import collect_turn_meals, save_to_firebase, init_firebase
 from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
+try:
+    from seller.agent import run_seller_agent
+except ImportError as _e:
+    print(f"[WARN] seller agent not available: {_e}")
+    async def run_seller_agent(turn_id: int): pass
 
 from datapizza.tools.mcp_client import MCPClient
 import os
@@ -359,8 +364,16 @@ async def waiting_phase_started() -> None:
 async def serving_phase_started() -> None:
     log("EVENT", "serving phase started")
     global ACTIVE_MENU, DISHES_READY
-    
-    # Mettiamo in griglia di preparazione (parallelamente) tutti i piatti del menu
+
+    # 1. Vendi gli ingredienti in eccesso (non usati dalle ricette del menu)
+    try:
+        log("SELLER", f"Running surplus seller for turn {CURRENT_TURN_ID}...")
+        await run_seller_agent(CURRENT_TURN_ID or 0)
+        log("SELLER", "Surplus seller completed.")
+    except Exception as e:
+        log("ERROR", f"Seller agent failed: {e}")
+
+    # 2. Mettiamo in griglia di preparazione tutti i piatti del menu
     if ACTIVE_MENU:
         for recipe in ACTIVE_MENU:
             dish_name = recipe.get("name")
