@@ -252,8 +252,8 @@ async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
             recipe_cost = 0
             for ing, qty_needed in focus_recipe.get("ingredients", {}).items():
                 base_price = history_prices.get(ing, DEFAULT_ING_PRICE)
-                # Offriamo un po' di più (120%) del solito per sbaragliare il mercato e prenderceli tutti
-                bid_price = max(2, int(base_price * 1.2))
+                # Offriamo PESANTEMENTE di più (x2.5 del prezzo storico) per sbaragliare il mercato e vincerli al 100%
+                bid_price = max(5, int(base_price * 2.5))
                 bid_prices[ing] = bid_price
                 recipe_cost += bid_price * qty_needed
                 
@@ -303,7 +303,7 @@ async def waiting_phase_started() -> None:
     else:
         log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
 
-    # 2. Definisci il multipiatto per saturare l'inventario (prezzo fisso 100cr)
+    # 2. Definisci il multipiatto per saturare l'inventario (prezzo fisso 50cr)
     try:
         log("AGENT", "Fetching inventory to define multi-dish menu...")
         my_restaurant = await game_api.get_my_restaurant()
@@ -339,7 +339,7 @@ async def waiting_phase_started() -> None:
                     local_inv[ing] -= qty_needed
                 
                 # Aggiungo la ricetta al menu attivo
-                recipe["recommended_price"] = 100
+                recipe["recommended_price"] = 50
                 ACTIVE_MENU.append(recipe)
                 log("AGENT", f"Greedy Allocator -> Added '{recipe['name']}' to ACTIVE_MENU. Updated local_inv leftover: {local_inv}")
                 
