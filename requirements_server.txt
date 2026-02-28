@@ -2,4 +2,7 @@ aiohttp
 datapizza-ai
 datapizza-ai-clients-openai-like
 firebase-admin
+matplotlib
+pandas
 python-dotenv
+seaborn

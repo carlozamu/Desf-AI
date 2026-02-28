@@ -1,3 +1,5 @@
+# Desf-AI
+
 ## Setup Database (Firebase Firestore)
 
 Questo progetto utilizza Firebase Firestore per il salvataggio dei dati (Ricette e Ristoranti). Per configurare correttamente la connessione al database, segui questi passaggi:
