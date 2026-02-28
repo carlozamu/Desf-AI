@@ -27,8 +27,9 @@ except ImportError as _e:
 
 from datapizza.tools.mcp_client import MCPClient
 from serving.meals_tracker import collect_turn_meals, init_firebase, save_to_firebase as save_meals_to_firebase, summarize_unserved_requests
-from serving.menu_tracker import collect_all_menus, get_lowest_competitor_price, save_to_firebase as save_menus_to_firebase
+from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
 from price_analyst.bid_tracker import fetch_and_save_bid_history
+from menu_pricing import compute_menu_price
 
 load_dotenv()
 
@@ -69,6 +70,11 @@ except ValueError:
 
 def log(tag: str, message: str) -> None:
     print(f"[{tag}] {datetime.now().isoformat(timespec='seconds')}: {message}")
+
+
+def get_firebase_cred_path() -> str:
+    path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase_credentials.json").strip()
+    return path or "firebase_credentials.json"
 
 
 def _normalize_order_text(text: str) -> str:
@@ -286,17 +292,23 @@ async def waiting_phase_started() -> None:
     global ACTIVE_MENU
 
     log("PHASE", "waiting")
+    CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
     try:
-        firebase_cred_path = os.path('firebase_credentials.json')
         await fetch_and_save_bid_history(
             turn_id=CURRENT_TURN_ID,
             api_key=TEAM_API_KEY,
             base_url=BASE_URL,
-            cred_path=firebase_cred_path
+            cred_path=CRED_PATH
         )
     except Exception as exc:
-        log("BID", f"Impossibile ottenere storico bid: {exc}")
+        log(
+            "BID",
+            (
+                "Impossibile ottenere storico bid: "
+                f"turn={CURRENT_TURN_ID} cred_path={CRED_PATH} error={exc}"
+            ),
+        )
 
     if not TARGET_RECIPES:
         log("MENU", "TARGET_RECIPES vuoto, menu non aggiornato")
@@ -310,8 +322,6 @@ async def waiting_phase_started() -> None:
     if is_cost_1x_test:
         log("MENU", f"Pricing mode attivo: cost_1x_test (turn={CURRENT_TURN_ID})")
 
-    menus_data = await collect_all_menus() if not is_cost_1x_test else {}
-
     menu_items: list[dict[str, Any]] = []
     for recipe in TARGET_RECIPES:
         dish_name = str(recipe.get("name", "")).strip()
@@ -319,23 +329,10 @@ async def waiting_phase_started() -> None:
             continue
 
         ingredient_cost = estimate_recipe_cost(recipe)
-        if is_cost_1x_test:
-            final_price = max(1, int(ingredient_cost))
-            pricing_mode_applied = "cost_1x_test"
-        else:
-            base_price = max(50, int(ingredient_cost * 1.8))
-            competitor_min = get_lowest_competitor_price(
-                menus_data,
-                dish_name,
-                my_restaurant_id=TEAM_ID,
-            )
-            if competitor_min is not None:
-                competitive_price = max(40, int(competitor_min) - 1)
-                final_price = max(base_price, competitive_price)
-            else:
-                final_price = base_price
-            final_price = max(1, min(999, final_price))
-            pricing_mode_applied = "default_competitive"
+        final_price, pricing_mode_applied = compute_menu_price(
+            ingredient_cost,
+            is_cost_1x_test=is_cost_1x_test,
+        )
 
         menu_items.append({"name": dish_name, "price": final_price})
         log(
