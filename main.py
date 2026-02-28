@@ -7,13 +7,11 @@ import api
 # Carica dal client_template l'infrastruttura SSE di base
 import client_template as sse_client
 
-# ── Chef Agent ────────────────────────────────────────────────────────────────
-# Menu planning + shopping list generation (run during speaking phase)
+# ── Agent imports (uncomment to activate) ────────────────────────────────────
 # from chef.chef_agent import init_chef_agent, plan_daily_menu
-
-# ── Market Scanner Agent ───────────────────────────────────────────────────────
-# Scans the live market for BUY/SELL opportunities based on Chef's shopping list
 # from market_scanner.market_scanner_agent import init_market_scanner, scan_market
+# from trader.trader_agent import init_trader
+# from pipeline.waiting_loop import run_waiting_loop
 
 memory = GameMemory()
 
@@ -41,9 +39,10 @@ async def custom_game_started(data):
     sse_client.log("EVENT", f"Game started, turn_id={turn_id}")
     await fetch_initial_data()
 
-    # Bind agents to shared memory once at game start
+    # Bind all agents to shared memory once at game start
     # init_chef_agent(memory)
     # init_market_scanner(memory)
+    # init_trader(memory)
 
 
 async def custom_phase_changed(data):
@@ -54,34 +53,51 @@ async def custom_phase_changed(data):
     await sse_client.game_phase_changed(data)
 
     if phase == "speaking":
-        # ── STEP 1: CHEF AGENT ──────────────────────────────────────────────
-        # Decides the menu, quantities, and outputs a shopping list.
-        # Saves the shopping list to Firestore (chef_plans/turn_{N}).
+        # ── PRE-SCAN: Chef + Market Scanner (first pass before auction) ──────
+        # Run early to gather bid intelligence before the closed_bid phase.
         #
         # target_audience = "Galactic Explorer"  # TODO: infer from game state
-        # markdown_plan, shopping_list = plan_daily_menu(target_audience)
-        # sse_client.log("CHEF", f"Menu plan ready. Shopping list: {shopping_list}")
-        #
-        # ── STEP 2: MARKET SCANNER ──────────────────────────────────────────
-        # Reads the shopping list, scans live market entries and bid history.
-        # Produces BUY/SELL alerts → saved to Firestore (market_alerts/turn_{N}).
-        # Alerts are passed to the Trader agent in the closed_bid phase.
-        #
-        # markdown_report, alerts = scan_market(shopping_list)
-        # sse_client.log("MARKET_SCANNER", f"{len(alerts)} opportunity alerts generated.")
+        # _, shopping_list = plan_daily_menu(target_audience)
+        # sse_client.log("CHEF", f"Shopping list ready: {shopping_list}")
+        # _, alerts = scan_market(shopping_list)
+        # sse_client.log("MARKET_SCANNER", f"{len(alerts)} alerts pre-auction.")
         pass
 
     elif phase == "closed_bid":
-        # TODO: Market Scanner + Trader agents will run here,
-        #       consuming the shopping list saved by the Chef Agent.
+        # Auction bids are submitted here (handled by a separate bidder module).
+        # The Market Scanner's bid strategy tips inform bid amounts.
         pass
 
     elif phase == "waiting":
-        # Inventory updated after bid settlement.
+        # ── WAITING LOOP: Chef → Market Scanner → Trader (iterative) ─────────
+        # Runs after the auction settles. Iterates until inventory is stable
+        # or max_iterations is reached. Goal: minimize ingredient waste.
+        #
+        # At every iteration:
+        #   - Chef re-plans the menu with the updated inventory
+        #   - Market Scanner scans for live BUY/SELL opportunities
+        #   - Trader executes transactions via MCP tools
+        #   - Inventory + menu snapshot saved to Firestore each round
+        #
+        # On exit → final menu pushed to server via save_menu MCP tool
+        #         → final state saved to Firestore (final_menu/turn_{N})
+        #
+        # target_audience = "Galactic Explorer"  # TODO: infer from game state
+        # final_state = await run_waiting_loop(
+        #     memory=memory,
+        #     target_audience=target_audience,
+        #     max_iterations=3,
+        # )
+        # sse_client.log("LOOP", (
+        #     f"Loop done in {final_state['iterations']} iter(s). "
+        #     f"Menu: {len(final_state['menu'])} dishes. "
+        #     f"Final inventory: {final_state['inventory']}"
+        # ))
         pass
 
     elif phase == "serving":
-        # Serve dishes based on the menu set during waiting phase.
+        # Dishes are served here using the menu committed during waiting.
+        # Serving logic (prepare_dish / serve_dish) goes here.
         pass
 
 
