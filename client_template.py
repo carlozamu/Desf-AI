@@ -16,7 +16,7 @@ import aiohttp
 
 import os
 TEAM_ID = os.getenv("TEAM_ID")
-TEAM_API_KEY = os.getenv("TEAM_API_KEY")
+TEAM_API_KEY = os.getenv("SERVER_API_KEY")
 
 BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 
