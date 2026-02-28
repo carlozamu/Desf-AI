@@ -16,6 +16,7 @@ import aiohttp
 
 # PRICE ANALYST IMPORT
 from price_analyst.bid_tracker import fetch_and_save_bid_history
+from price_analyst.agent import get_bidding_prices
 
 
 import os
@@ -57,6 +58,19 @@ async def speaking_phase_started() -> None:
 
 async def closed_bid_phase_started() -> None:
     log("EVENT", "closed bid phase started")
+    
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID}...")
+        
+        # We run the agent synchronously in a separate thread so we don't block the asyncio event loop
+        prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+        
+        if prices:
+            log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
+            # FUTURE: Submit these bids to the server using the team API
+    else:
+        log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
 
 
 async def waiting_phase_started() -> None:
