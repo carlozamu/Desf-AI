@@ -1,19 +1,30 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from tinydb import TinyDB
 from collections import Counter
 import os
+import firebase_admin
+from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
 
-recipes_db = TinyDB('data_recipes.json')
-restaurants_db = TinyDB('data_restaurants.json')
+load_dotenv()
+
+if not firebase_admin._apps:
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if cred_path:
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+    else:
+        firebase_admin.initialize_app()
+
+db = firestore.client()
 
 # Create output dir for images
 os.makedirs('visualizations', exist_ok=True)
 
 def plot_ingredient_distribution():
     print("Generating Ingredient Distribution Plot...")
-    recipes = recipes_db.all()
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
     ingredient_counter = Counter()
     
     for r in recipes:
@@ -38,7 +49,7 @@ def plot_ingredient_distribution():
 
 def plot_efficiency_scatter():
     print("Generating Recipe Efficiency Scatter Plot...")
-    recipes = recipes_db.all()
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
     
     data = []
     
@@ -87,7 +98,7 @@ def plot_efficiency_scatter():
 
 def plot_market_overview():
      print("Generating Market Overview...")
-     restaurants = restaurants_db.all()
+     restaurants = [doc.to_dict() for doc in db.collection('restaurants').stream()]
      
      if not restaurants:
          print("Nessun dato sui ristoranti.")
@@ -117,7 +128,8 @@ def plot_market_overview():
      return 'visualizations/market_overview.png'
      
 if __name__ == "__main__":
-    if len(recipes_db.all()) == 0:
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
+    if len(recipes) == 0:
         print("Il database delle ricette è vuoto. Esegui data_manager.py prima!")
     else:
         plot_ingredient_distribution()

@@ -1,12 +1,24 @@
-from tinydb import TinyDB
+import os
+import firebase_admin
+from firebase_admin import credentials, firestore
 from collections import Counter
+from dotenv import load_dotenv
 
-recipes_db = TinyDB('data_recipes.json')
-restaurants_db = TinyDB('data_restaurants.json')
+load_dotenv()
+
+if not firebase_admin._apps:
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if cred_path:
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+    else:
+        firebase_admin.initialize_app()
+
+db = firestore.client()
 
 def analyze_ingredients():
     """Analizza quali ingredienti appaiono più spesso in tutte le ricette"""
-    recipes = recipes_db.all()
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
     ingredient_counter = Counter()
     
     for r in recipes:
@@ -20,7 +32,7 @@ def analyze_ingredients():
 
 def analyze_recipe_efficiency():
     """Analizza l'efficienza delle ricette valutando il rapporto Prestigio / Tempo di Preparazione"""
-    recipes = recipes_db.all()
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
     
     efficiency_list = []
     
@@ -53,16 +65,17 @@ def analyze_recipe_efficiency():
 
 def analyze_competitors():
      """Mostra i nomi dei team aperti in questo momento e la loro rep"""
-     restaurants = restaurants_db.all()
+     restaurants = [doc.to_dict() for doc in db.collection('restaurants').stream()]
      print(f"\n==== STATO RISTORANTI COMPETITOR Trovati: {len(restaurants)} ====")
      for r in restaurants:
          print(f"- Team {r.get('id')} ({r.get('name')}) | Open: {r.get('isOpen')} | Balance: {r.get('balance')} | Rep: {r.get('reputation')}")
 
 if __name__ == "__main__":
-    if len(recipes_db.all()) == 0:
+    recipes = [doc.to_dict() for doc in db.collection('recipes').stream()]
+    if len(recipes) == 0:
          print("[!] Attenzione: Il DB delle ricette è vuoto. Esegui prima data_manager.py")
     else:
-        print(f"Analisi di {len(recipes_db.all())} ricette trovate nel database...")
+        print(f"Analisi di {len(recipes)} ricette trovate nel database...")
         analyze_ingredients()
         analyze_recipe_efficiency()
         analyze_competitors()
