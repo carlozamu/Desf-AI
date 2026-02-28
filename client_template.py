@@ -242,43 +242,37 @@ async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
                 return
             history_prices = get_ingredient_prices_from_history()
             
-            # 1) Troviamo "i prodotti giusti": ordiniamo tutte le ricette dal prezzo teorico minore
+            # 1) Troviamo "LA ricetta giusta": la prima in assoluto più economica da produrre
             sorted_recipes_by_cost = sorted(recipes, key=lambda r: sum(history_prices.get(i, DEFAULT_ING_PRICE) * q for i, q in r.get("ingredients", {}).items()))
+            focus_recipe = sorted_recipes_by_cost[0]
+            log("AGENT", f"Focus Target Recipe for Bidding: {focus_recipe['name']}")
             
-            # 2) Prendiamo le prime 5 ricette più economiche come focus di acquisto
-            focus_recipes = sorted_recipes_by_cost[:5]
-            
-            target_ingredients = set()
-            for r in focus_recipes:
-                for ing in r.get("ingredients", {}).keys():
-                    target_ingredients.add(ing)
-                    
-            merged_prices = {}
-            for ing in target_ingredients:
-                merged_prices[ing] = history_prices.get(ing, DEFAULT_ING_PRICE)
+            # 2) Prepariamo i bid per GARANTIRCI gli ingredienti di questa specifica ricetta
+            bid_prices = {}
+            recipe_cost = 0
+            for ing, qty_needed in focus_recipe.get("ingredients", {}).items():
+                base_price = history_prices.get(ing, DEFAULT_ING_PRICE)
+                # Offriamo un po' di più (120%) del solito per sbaragliare il mercato e prenderceli tutti
+                bid_price = max(2, int(base_price * 1.2))
+                bid_prices[ing] = bid_price
+                recipe_cost += bid_price * qty_needed
                 
-            sorted_ings = sorted(merged_prices.items(), key=lambda x: x[1])
-            
             bids_payload = []
             BUDGET = 800
-            current_spent = 0
             
-            for ing, price in sorted_ings:
-                # ABBASSIAMO L'OFFERTA AL MINIMO SINDACALE PER PRENDERE VOLUMI ENORMI (max 1/3 dello storico o almeno 2cr)
-                offer = max(2, int(price * 0.33))
-                qty = 3 # Aumentiamo la quantity per ing
+            if recipe_cost > 0:
+                # Calcoliamo quante porzioni intere riusciamo a finanziare col budget a disposizione
+                N = BUDGET // recipe_cost
+                if N < 1: 
+                    N = 1 # Ne proviamo a prendere almeno una per non star fermi
                 
-                spesa_prevista = offer * qty
-                if current_spent + spesa_prevista <= BUDGET:
+                log("AGENT", f"Targeting {N} portions of '{focus_recipe['name']}' with max budget {BUDGET}cr.")
+                for ing, qty_needed in focus_recipe.get("ingredients", {}).items():
                     bids_payload.append({
                         "ingredient": ing,
-                        "bid": offer,
-                        "quantity": qty
+                        "bid": bid_prices[ing],
+                        "quantity": qty_needed * N
                     })
-                    current_spent += spesa_prevista
-                else:
-                    # Abbiamo saturato il budget degli 800 crediti
-                    break
                 
             if bids_payload:
                 log("AGENT", f"Placing {len(bids_payload)} bulk bids on cheap ingredients.")
@@ -413,8 +407,14 @@ async def client_spawned(data: dict[str, Any]) -> None:
     client_name = data.get("clientName", data.get("name", "unknown"))
     order_text  = str(data.get("orderText", data.get("order", "")))
     clean_order = order_text.lower().strip()
+    
+    # NOVITA: Estrarre le intolleranze del cliente dal payload del server
+    client_intolerances = set()
+    raw_intolerances = data.get("intolerances", [])
+    if isinstance(raw_intolerances, list):
+        client_intolerances = set([str(x).lower().strip() for x in raw_intolerances])
 
-    log("EVENT", f"client={client_name} (id={client_id}) order={clean_order}")
+    log("EVENT", f"client={client_name} (id={client_id}) order={clean_order} intolerances={client_intolerances}")
 
     # Tentiamo di servire il cliente scorrendo i piatti attivi nel nostro menu multipiatto
     if ACTIVE_MENU:
@@ -426,6 +426,15 @@ async def client_spawned(data: dict[str, Any]) -> None:
             if dish_name and dish_name.lower() in clean_order:
                 # Controlliamo se questo piatto specifico ha la campanella "Pronto" suonata
                 if DISHES_READY.get(dish_name) is True:
+                    
+                    # SICUREZZA INTOLLERANZE (Dal codice del progetto "domenicAIn")
+                    recipe_ingredients = set([str(k).lower().strip() for k in recipe.get("ingredients", {}).keys()])
+                    intersection = recipe_ingredients.intersection(client_intolerances)
+                    
+                    if intersection:
+                        log("ERROR", f"BLOCKED! Dish '{dish_name}' contains intolerances {intersection} for client {client_name}.")
+                        continue # Skippa questo piatto, è tossico per lui
+                    
                     match_found = True
                     target_dish_served = dish_name
                     break
@@ -442,17 +451,24 @@ async def client_spawned(data: dict[str, Any]) -> None:
                         log("EVENT-DEBUG", f"/meals response: {meals_data}")
                         
                         for meal in meals_data:
-                            # Cerchiamo un pasto non ancora servito che combaci con il nome del cliente
-                            meal_client_name = str(meal.get("client_name", meal.get("name", meal.get("clientName", ""))))
-                            meal_order = str(meal.get("order", meal.get("orderText", ""))).lower().strip()
+                            # Struttura esatta dal DB Datapizza: {'customerId': 390, 'request': "I want to eat Piatto...", 'customer': {'name': '...'}}
+                            customer_info = meal.get("customer", {})
+                            meal_client_name = str(customer_info.get("name", meal.get("client_name", meal.get("name", ""))))
+                            meal_order_full  = str(meal.get("request", meal.get("order", ""))).lower().strip()
                             
-                            is_same_client = (meal_client_name == str(client_name)) if client_name else False
-                            is_same_order = (meal_order == clean_order) if clean_order else False
+                            is_same_client = False
+                            if client_name and (client_name == meal_client_name):
+                                is_same_client = True
+                            
+                            is_same_order = False
+                            # L'orderText di SSE è "Nome Piatto", ma in "request" c'è l'intera frase "I want to eat X. I'm intolerant to Y". Check di inclusione.
+                            if clean_order and (clean_order in meal_order_full):
+                                is_same_order = True
                             
                             is_executed = meal.get("executed", False)
                             
                             if (not is_executed) and (is_same_client or is_same_order):
-                                meal_client_id = meal.get("client_id", meal.get("id", meal.get("clientId")))
+                                meal_client_id = meal.get("customerId", meal.get("customer_id", meal.get("id")))
                                 if meal_client_id is not None:
                                     real_client_id = str(meal_client_id)
                                     break
