@@ -14,13 +14,14 @@ from typing import Any, Awaitable, Callable
 
 import aiohttp
 
-TEAM_ID = 0  # your team id
-TEAM_API_KEY = "your_team_api_key"
+import os
+TEAM_ID = os.getenv("TEAM_ID")
+TEAM_API_KEY = os.getenv("TEAM_API_KEY")
 
-BASE_URL = "https://hackapizza.datapizza.tech"
+BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 
 if not TEAM_API_KEY or not TEAM_ID:
-    raise SystemExit("Set TEAM_API_KEY and TEAM_ID")
+    raise SystemExit("Set TEAM_API_KEY and TEAM_ID environment variables")
 
 
 def log(tag: str, message: str) -> None:
