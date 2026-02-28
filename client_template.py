@@ -7,564 +7,497 @@
 # ]
 # ///
 
+from __future__ import annotations
+
 import asyncio
 import json
+import os
+import re
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 import aiohttp
-
-
-
-from price_analyst.agent import get_bidding_prices
-from price_analyst.bid_tracker import fetch_and_save_bid_history
-from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
-from serving.meals_tracker import collect_turn_meals, save_to_firebase, init_firebase
-from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
+from dotenv import load_dotenv
 
 from datapizza.tools.mcp_client import MCPClient
-import os
-from dotenv import load_dotenv
+from serving.meals_tracker import collect_turn_meals, init_firebase, save_to_firebase as save_meals_to_firebase, summarize_unserved_requests
+from serving.menu_tracker import collect_all_menus, get_lowest_competitor_price, save_to_firebase as save_menus_to_firebase
 
 load_dotenv()
 
-TEAM_ID = os.getenv("TEAM_ID")
-TEAM_API_KEY = os.getenv("SERVER_API_KEY")
-CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-
-# Etichetta della run corrente — modifica a ogni run ufficiale
+TEAM_ID = os.getenv("TEAM_ID", "")
+TEAM_API_KEY = os.getenv("SERVER_API_KEY", os.getenv("TEAM_API_KEY", ""))
+BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 RUN_ID = os.getenv("RUN_ID", "main")
 
-BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
+if not TEAM_ID or not TEAM_API_KEY:
+    raise SystemExit("Set TEAM_ID and SERVER_API_KEY (or TEAM_API_KEY) in .env")
 
-if not TEAM_API_KEY or not TEAM_ID:
-    raise SystemExit("Set TEAM_API_KEY and TEAM_ID environment variables")
-
-# GLOBALE VARIAVLE TO STORE the TURNEMENT
-CURRENT_TURN_ID = None
-
-# INIZIALIZZIAMO MCP CLIENT
 mcp_client = MCPClient(
     url=f"{BASE_URL}/mcp",
-    headers={"x-api-key": TEAM_API_KEY}
+    headers={"x-api-key": TEAM_API_KEY},
 )
+
+CURRENT_TURN_ID: int = 0
+TARGET_RECIPES: list[dict[str, Any]] = []
+ACTIVE_MENU: list[dict[str, Any]] = []
+DISHES_READY: dict[str, bool] = {}
+INGREDIENT_BIDS: dict[str, int] = {}
+
+MIN_INGREDIENT_BID = 20
+MAX_INGREDIENT_BID = 30
+PORTIONS_PER_RECIPE = 2
+MAX_TARGET_RECIPES = 3
 
 
 def log(tag: str, message: str) -> None:
-    print(f"[{tag}] {datetime.now()}: {message}")
+    print(f"[{tag}] {datetime.now().isoformat(timespec='seconds')}: {message}")
 
 
-BID_LOG_FILE = Path(__file__).parent / "bids_log.jsonl"
+def _normalize_order_text(text: str) -> str:
+    raw = str(text or "").strip().lower()
+    if not raw:
+        return ""
 
-# ──────────────────────────────────────────────────────────────────────────────
-# FORCED RECIPE — imposta None per usare il menu optimizer automatico
-# Ricetta economica: ingredienti poco contesi (~50-70cr totali)
-# ──────────────────────────────────────────────────────────────────────────────
-FORCED_RECIPE: dict | None = None  # OR-Tools planner sceglierà la migliore ricetta
+    pattern = re.compile(r"^\s*i want to eat\s+(.+?)(?:\.\s*i'?m intolerant to.+)?\s*$", re.IGNORECASE)
+    match = pattern.match(raw)
+    if match:
+        return match.group(1).strip().lower()
+    return raw
 
-def log_bids_to_file(turn_id: int, recipe_name: str, bids: list) -> None:
-    """Appende il bid round a bids_log.jsonl per tenere storico delle nostre offerte."""
-    record = {
-        "ts": datetime.now().isoformat(),
-        "turn_id": turn_id,
-        "recipe": recipe_name,
-        "bids": bids,
-        "total_estimated_cost": sum(b["bid"] * b.get("quantity", 1) for b in bids)
-    }
+
+async def api_get(endpoint: str, *, params: dict[str, Any] | None = None) -> Any:
+    url = f"{BASE_URL}{endpoint}"
+    headers = {"x-api-key": TEAM_API_KEY}
+    timeout = aiohttp.ClientTimeout(total=20)
+
     try:
-        with BID_LOG_FILE.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        log("BID-LOG", f"Appended {len(bids)} bids to {BID_LOG_FILE.name}")
-    except Exception as e:
-        log("ERROR", f"Failed to write bid log: {e}")
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    return await response.json()
+                text = await response.text()
+                log("HTTP", f"GET {endpoint} -> {response.status} {text[:180]}")
+                return None
+    except aiohttp.ClientError as exc:
+        log("HTTP", f"GET {endpoint} failed: {exc}")
+        return None
 
 
+async def get_recipes() -> list[dict[str, Any]]:
+    data = await api_get("/recipes")
+    return data if isinstance(data, list) else []
 
 
-def get_ingredient_prices_from_history() -> dict:
-    """Legge bids_log.jsonl e restituisce il prezzo medio bid per ingrediente (ultime N run)."""
-    prices: dict = {}
-    if not BID_LOG_FILE.exists():
-        return {}
-    try:
-        lines = [l for l in BID_LOG_FILE.read_text(encoding='utf-8').splitlines() if l.strip()]
-        for line in lines[-5:]:
-            record = json.loads(line)
-            if record.get('recipe') == 'fallback':
+async def get_my_meals(turn_id: int) -> list[dict[str, Any]]:
+    data = await api_get(
+        "/meals",
+        params={"turn_id": turn_id, "restaurant_id": TEAM_ID},
+    )
+    return data if isinstance(data, list) else []
+
+
+def recipe_ingredients(recipe: dict[str, Any]) -> dict[str, int]:
+    raw = recipe.get("ingredients", {})
+
+    if isinstance(raw, dict):
+        ingredients: dict[str, int] = {}
+        for name, qty in raw.items():
+            if not name:
                 continue
-            for bid in record.get('bids', []):
-                ing   = bid['ingredient']
-                price = bid['bid'] * bid.get('quantity', 1)
-                prices.setdefault(ing, []).append(price)
-    except Exception as e:
-        log('ERROR', f'get_ingredient_prices_from_history: {e}')
-    return {ing: sum(v) / len(v) for ing, v in prices.items()}
+            if isinstance(qty, (int, float)):
+                ingredients[str(name)] = max(1, int(qty))
+            else:
+                ingredients[str(name)] = 1
+        return ingredients
+
+    if isinstance(raw, list):
+        out: dict[str, int] = {}
+        for name in raw:
+            if name:
+                out[str(name)] = out.get(str(name), 0) + 1
+        return out
+
+    return {}
 
 
-MAX_MENU_PRICE = 999
-DEFAULT_ING_PRICE = 20
+def pick_fallback_recipes(recipes: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    sortable = []
+    for recipe in recipes:
+        ingredients = recipe_ingredients(recipe)
+        if not ingredients:
+            continue
+        sortable.append((sum(ingredients.values()), len(ingredients), recipe.get("name", ""), recipe))
 
-def estimate_recipe_cost(recipe: dict, price_history: dict) -> float:
-    """Stima il costo totale degli ingredienti di una ricetta dai prezzi storici."""
-    raw_ings = recipe.get('ingredients', {})
-    ings = list(raw_ings.keys()) if isinstance(raw_ings, dict) else list(raw_ings)
-    return sum(price_history.get(ing, DEFAULT_ING_PRICE) for ing in ings)
+    sortable.sort(key=lambda row: (row[0], row[1], row[2]))
+    return [row[3] for row in sortable[:limit]]
 
 
-async def _run_planner() -> None:
-    """OR-Tools su ricette fattibili (costo*1.1 <= 999) — aggiorna TARGET_RECIPE ogni turno."""
-    global TARGET_RECIPE
+async def choose_target_recipes_for_bidding(turn_id: int) -> list[dict[str, Any]]:
+    recipes = await get_recipes()
+    if not recipes:
+        return []
+
+    recipes_by_name = {
+        str(recipe.get("name", "")).strip().lower(): recipe
+        for recipe in recipes
+        if recipe.get("name")
+    }
+
+    if turn_id <= 1:
+        return pick_fallback_recipes(recipes, MAX_TARGET_RECIPES)
+
+    previous_turn = turn_id - 1
     try:
-        price_history = get_ingredient_prices_from_history()
-        log('AGENT', f'📊 Ingredient price history: {len(price_history)} ingredients known.')
+        meals_data = await collect_turn_meals(previous_turn)
+        ranking = summarize_unserved_requests(meals_data)
+    except Exception as exc:
+        log("STRATEGY", f"Impossibile analizzare /meals turn {previous_turn}: {exc}")
+        ranking = []
 
-        recipes     = await asyncio.to_thread(get_recipes_data)
-        competitors = await asyncio.to_thread(get_competitors_menus)
+    chosen: list[dict[str, Any]] = []
+    for row in ranking:
+        if int(row.get("unserved_requests", 0)) <= 0:
+            continue
 
-        if not recipes:
-            log('AGENT', '⚠️ No recipes in Firebase. Skipping optimization.')
-            return
+        recipe_name = str(row.get("recipe_name", "")).strip().lower()
+        candidate = recipes_by_name.get(recipe_name)
+        if not candidate:
+            continue
 
-        feasible = [r for r in recipes
-                    if estimate_recipe_cost(r, price_history) * 1.1 <= MAX_MENU_PRICE]
+        chosen.append(candidate)
+        if len(chosen) >= MAX_TARGET_RECIPES:
+            break
 
-        log('AGENT', f'🔍 Feasible recipes (cost×1.1 ≤ {MAX_MENU_PRICE}cr): {len(feasible)}/{len(recipes)}')
+    if chosen:
+        return chosen
 
-        if not feasible:
-            log('AGENT', '⚠️ No feasible recipes within price cap — keeping current TARGET_RECIPE.')
-            return
+    return pick_fallback_recipes(recipes, MAX_TARGET_RECIPES)
 
-        best_menu = await asyncio.to_thread(
-            build_and_solve_model, feasible, competitors, 1, 0.5, 'esploratore', DEFAULT_ING_PRICE
+
+def build_low_cost_bids(target_recipes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    global INGREDIENT_BIDS
+
+    aggregate_qty: dict[str, int] = {}
+    ingredient_presence: dict[str, int] = {}
+
+    for recipe in target_recipes:
+        ingredients = recipe_ingredients(recipe)
+        for ingredient, qty in ingredients.items():
+            aggregate_qty[ingredient] = aggregate_qty.get(ingredient, 0) + qty * PORTIONS_PER_RECIPE
+            ingredient_presence[ingredient] = ingredient_presence.get(ingredient, 0) + 1
+
+    bids: list[dict[str, Any]] = []
+    bid_map: dict[str, int] = {}
+
+    for ingredient, qty in sorted(aggregate_qty.items()):
+        pressure = ingredient_presence.get(ingredient, 1)
+        bid_value = MIN_INGREDIENT_BID + min(10, max(0, (pressure - 1) * 5))
+        bid_value = max(MIN_INGREDIENT_BID, min(MAX_INGREDIENT_BID, bid_value))
+
+        bids.append(
+            {
+                "ingredient": ingredient,
+                "bid": int(bid_value),
+                "quantity": int(max(1, qty)),
+            }
         )
+        bid_map[ingredient] = int(bid_value)
 
-        if best_menu:
-            chosen    = best_menu[0]
-            real_cost = estimate_recipe_cost(chosen, price_history)
-            real_price = min(int(real_cost * 1.1), MAX_MENU_PRICE)
-            chosen['recommended_price'] = real_price
-            TARGET_RECIPE = chosen
-            name_str = TARGET_RECIPE['name']
-            log('AGENT', f'✅ Planner chose: "{name_str}" | Est. cost: {real_cost:.0f}cr | Price: {real_price}cr')
-        else:
-            log('AGENT', '⚠️ Planner returned no recipes from feasible set.')
+    INGREDIENT_BIDS = bid_map
+    return bids
 
-    except Exception as e:
-        log('ERROR', f'_run_planner failed: {e}')
+
+def estimate_recipe_cost(recipe: dict[str, Any]) -> int:
+    cost = 0
+    for ingredient, qty in recipe_ingredients(recipe).items():
+        bid = INGREDIENT_BIDS.get(ingredient, MIN_INGREDIENT_BID)
+        cost += bid * qty
+    return max(cost, MIN_INGREDIENT_BID)
+
+
+async def call_mcp(tool_name: str, arguments: dict[str, Any]) -> Any:
+    try:
+        return await mcp_client.call_tool(tool_name, arguments)
+    except Exception as exc:
+        log("MCP", f"{tool_name} failed: {exc}")
+        return None
+
 
 async def game_started(data: dict[str, Any]) -> None:
-    global CURRENT_TURN_ID, ACTIVE_MENU, DISHES_READY
+    global CURRENT_TURN_ID, TARGET_RECIPES, ACTIVE_MENU, DISHES_READY, INGREDIENT_BIDS
 
-    turn_id = data.get("turn_id", None)
-    CURRENT_TURN_ID = turn_id
+    CURRENT_TURN_ID = int(data.get("turn_id", CURRENT_TURN_ID or 0) or 0)
+    TARGET_RECIPES = []
+    ACTIVE_MENU = []
     DISHES_READY = {}
-    ACTIVE_MENU = [] # Reset menu completely at start of turn
+    INGREDIENT_BIDS = {}
 
-    log("EVENT", "game started, turn id: " + str(turn_id))
-
-    # 1. Apriamo il ristorante in ogni nuova run
-    try:
-        log("AGENT", "Opening the restaurant for the new turn.")
-        res = await mcp_client.call_tool("update_restaurant_is_open", {"is_open": True})
-        log("AGENT", f"MCP Tool Response (Open Menu): {res}")
-    except Exception as e:
-        log("ERROR", f"Failed to open restaurant: {e}")
-
-    # 2. Sincronizza ricette su Firebase (in background, non bloccante)
-    asyncio.create_task(_sync_firebase())
-
-
-async def _sync_firebase() -> None:
-    """Sincronizza ricette e ristoranti su Firebase in background."""
-    try:
-        log("AGENT", "Syncing recipes and restaurants to Firebase...")
-        await fetch_and_store_recipes()
-        await fetch_and_store_restaurants()
-        log("AGENT", "Firebase sync complete.")
-    except Exception as e:
-        log("ERROR", f"Firebase sync failed: {e}")
+    log("EVENT", f"game_started turn={CURRENT_TURN_ID}")
+    await call_mcp("update_restaurant_is_open", {"is_open": True})
 
 
 async def speaking_phase_started() -> None:
-    log("EVENT", "speaking phase started")
-    
-    # Manda 'cosa avete oggi nel menu?' a tutti i ristoranti aperti
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = f"{BASE_URL}/restaurants"
-            headers = {"x-api-key": TEAM_API_KEY}
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    
-                    if isinstance(data, list):
-                        restaurants = data
-                    elif isinstance(data, dict) and "restaurants" in data:
-                        restaurants = data["restaurants"]
-                    else:
-                        restaurants = []
-
-                    msg = "cosa avete oggi nel menu?"
-                    count = 0
-                    for rest in restaurants:
-                        rest_id = rest.get("id")
-                        if rest_id is not None and str(rest_id) != str(TEAM_ID) and rest.get("isOpen") is True:
-                            try:
-                                await mcp_client.call_tool("send_message", {"recipient_id": rest_id, "text": msg})
-                                count += 1
-                                log("AGENT", f"Sent message to restaurant {rest_id}")
-                            except Exception as e:
-                                log("ERROR", f"Failed to send message to {rest_id}: {e}")
-                    log("AGENT", f"Speaking phase: sent message to {count} open restaurants.")
-                else:
-                    log("ERROR", f"Failed to fetch restaurants: HTTP {response.status}")
-    except Exception as e:
-        log("ERROR", f"Error during speaking phase message distribution: {e}")
+    log("PHASE", "speaking")
 
 
-async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
-    log("EVENT", "closed bid phase started")
-        
-    global CURRENT_TURN_ID, LAST_BID_INGREDIENT, ACTIVE_MENU
-    import api as game_api
-    
-    if data and data.get("turn_id"):
-        CURRENT_TURN_ID = data.get("turn_id")
-        
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("AGENT", "1. in fase close-bid punti su tanti ingredienti che nei log precedenti non costano tanto")
-        
-        try:
-            recipes = await game_api.get_recipes()
-            if not recipes:
-                log("AGENT", "No recipes found, skipping bid.")
-                return
-            history_prices = get_ingredient_prices_from_history()
-            
-            # 1) Troviamo "LA ricetta giusta": la prima in assoluto più economica da produrre
-            sorted_recipes_by_cost = sorted(recipes, key=lambda r: sum(history_prices.get(i, DEFAULT_ING_PRICE) * q for i, q in r.get("ingredients", {}).items()))
-            focus_recipe = sorted_recipes_by_cost[0]
-            log("AGENT", f"Focus Target Recipe for Bidding: {focus_recipe['name']}")
-            
-            # 2) Prepariamo i bid per GARANTIRCI gli ingredienti di questa specifica ricetta
-            bid_prices = {}
-            recipe_cost = 0
-            for ing, qty_needed in focus_recipe.get("ingredients", {}).items():
-                base_price = history_prices.get(ing, DEFAULT_ING_PRICE)
-                # Offriamo PESANTEMENTE di più (x2.5 del prezzo storico) per sbaragliare il mercato e vincerli al 100%
-                bid_price = max(5, int(base_price * 2.5))
-                bid_prices[ing] = bid_price
-                recipe_cost += bid_price * qty_needed
-                
-            bids_payload = []
-            BUDGET = 800
-            
-            if recipe_cost > 0:
-                # Calcoliamo quante porzioni intere riusciamo a finanziare col budget a disposizione
-                N = BUDGET // recipe_cost
-                if N < 1: 
-                    N = 1 # Ne proviamo a prendere almeno una per non star fermi
-                
-                log("AGENT", f"Targeting {N} portions of '{focus_recipe['name']}' with max budget {BUDGET}cr.")
-                for ing, qty_needed in focus_recipe.get("ingredients", {}).items():
-                    bids_payload.append({
-                        "ingredient": ing,
-                        "bid": bid_prices[ing],
-                        "quantity": qty_needed * N
-                    })
-                
-            if bids_payload:
-                log("AGENT", f"Placing {len(bids_payload)} bulk bids on cheap ingredients.")
-                LAST_BID_INGREDIENT = bids_payload[0]["ingredient"]
-                response = await mcp_client.call_tool("closed_bid", {"bids": bids_payload})
-                log("AGENT", f"MCP Tool Response (Closed Bid): {response}")
-                log_bids_to_file(CURRENT_TURN_ID, "cheap_bulk", bids_payload)
-                
-        except Exception as e:
-            log("ERROR", f"Bidding pipeline failed: {e}")
-    else:
-        log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
+async def closed_bid_phase_started(data: dict[str, Any] | None = None) -> None:
+    global CURRENT_TURN_ID, TARGET_RECIPES
+
+    if data and data.get("turn_id") is not None:
+        CURRENT_TURN_ID = int(data["turn_id"])
+
+    log("PHASE", f"closed_bid turn={CURRENT_TURN_ID}")
+
+    TARGET_RECIPES = await choose_target_recipes_for_bidding(CURRENT_TURN_ID)
+    if not TARGET_RECIPES:
+        log("BID", "Nessuna ricetta target trovata")
+        return
+
+    bids = build_low_cost_bids(TARGET_RECIPES)
+    if not bids:
+        log("BID", "Nessun bid da inviare")
+        return
+
+    recipe_names = [str(r.get("name")) for r in TARGET_RECIPES]
+    log("BID", f"Target ricette: {recipe_names}")
+    log("BID", f"Invio {len(bids)} bids (range {MIN_INGREDIENT_BID}-{MAX_INGREDIENT_BID})")
+    await call_mcp("closed_bid", {"bids": bids})
 
 
 async def waiting_phase_started() -> None:
-    log("EVENT", "waiting phase started")
+    global ACTIVE_MENU
 
-    global CURRENT_TURN_ID, ACTIVE_MENU
-    import api as game_api
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
-        asyncio.create_task(fetch_and_save_bid_history(
-            turn_id=CURRENT_TURN_ID,
-            api_key=TEAM_API_KEY,
-            base_url=BASE_URL,
-            cred_path=CRED_PATH
-        ))
-    else:
-        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
+    log("PHASE", "waiting")
 
-    # 2. Definisci il multipiatto per saturare l'inventario (prezzo fisso 50cr)
-    try:
-        log("AGENT", "Fetching inventory to define multi-dish menu...")
-        my_restaurant = await game_api.get_my_restaurant()
-        if not my_restaurant:
-            log("ERROR", "Could not fetch restaurant status in waiting phase.")
-            return
-            
-        inventory = my_restaurant.get("inventory", {})
-        log("AGENT", f"Current root inventory: {inventory}")
-        
-        # Facciamo una copia profonda in modo da scalarla mentre scegliamo ricette multiple
-        local_inv = dict(inventory)
+    if not TARGET_RECIPES:
+        log("MENU", "TARGET_RECIPES vuoto, menu non aggiornato")
+        return
 
-        recipes = await game_api.get_recipes()
-        history_prices = get_ingredient_prices_from_history()
-        
-        # Ordiniamo le ricette per costo storico (crescente) per privilegiare roba economica da fare in volume
-        sorted_recipes = sorted(recipes, key=lambda r: sum(history_prices.get(i, DEFAULT_ING_PRICE) * q for i, q in r.get("ingredients", {}).items()))
-        
-        ACTIVE_MENU = []
-        
-        for recipe in sorted_recipes:
-            # Controllo quante volte posso fare questa recipe col local_inv attuale
-            can_make = True
-            for ing, qty_needed in recipe.get("ingredients", {}).items():
-                if local_inv.get(ing, 0) < qty_needed:
-                    can_make = False
-                    break
-            
-            if can_make:
-                # Sottraggo dall'inventario locale teorico
-                for ing, qty_needed in recipe.get("ingredients", {}).items():
-                    local_inv[ing] -= qty_needed
-                
-                # Aggiungo la ricetta al menu attivo
-                recipe["recommended_price"] = 50
-                ACTIVE_MENU.append(recipe)
-                log("AGENT", f"Greedy Allocator -> Added '{recipe['name']}' to ACTIVE_MENU. Updated local_inv leftover: {local_inv}")
-                
-        # Prepariamo il payload finale per salvare il menù (non fa niente se è andato tutto a zero e menu è vuoto, ma noi proveremo sempre a salvare)
-        if ACTIVE_MENU:
-            menu_payload = [{"name": r["name"], "price": r["recommended_price"]} for r in ACTIVE_MENU]
-            log("AGENT", f"Final Computed Menu: {menu_payload}")
-            res = await mcp_client.call_tool("save_menu", {"items": menu_payload})
-            log("AGENT", f"save_menu response: {res}")
+    menus_data = await collect_all_menus()
+
+    menu_items: list[dict[str, Any]] = []
+    for recipe in TARGET_RECIPES:
+        dish_name = str(recipe.get("name", "")).strip()
+        if not dish_name:
+            continue
+
+        ingredient_cost = estimate_recipe_cost(recipe)
+        base_price = max(50, int(ingredient_cost * 1.8))
+
+        competitor_min = get_lowest_competitor_price(
+            menus_data,
+            dish_name,
+            my_restaurant_id=TEAM_ID,
+        )
+
+        if competitor_min is not None:
+            competitive_price = max(40, int(competitor_min) - 1)
+            final_price = max(base_price, competitive_price)
         else:
-            log("AGENT", "No feasible recipes with current inventory. Keeping menu empty/closed.")
-            ACTIVE_MENU = []
-    except Exception as e:
-        log("ERROR", f"Waiting phase menu setting failed: {e}")
+            final_price = base_price
+
+        final_price = max(1, min(999, final_price))
+        menu_items.append({"name": dish_name, "price": final_price})
+
+    if not menu_items:
+        log("MENU", "Nessuna voce menu da salvare")
+        return
+
+    ACTIVE_MENU = menu_items
+    await call_mcp("save_menu", {"items": menu_items})
+    log("MENU", f"Menu aggiornato: {ACTIVE_MENU}")
 
 
 async def serving_phase_started() -> None:
-    log("EVENT", "serving phase started")
-    global ACTIVE_MENU, DISHES_READY
-    
-    # Mettiamo in griglia di preparazione (parallelamente) tutti i piatti del menu
-    if ACTIVE_MENU:
-        for recipe in ACTIVE_MENU:
-            dish_name = recipe.get("name")
-            DISHES_READY[dish_name] = False # Inizializziamo lo stato
-            log("AGENT", f"🍳 Preparing dish multi-menu: '{dish_name}'...")
-            try:
-                res = await mcp_client.call_tool("prepare_dish", {"dish_name": dish_name})
-                log("AGENT", f"prepare_dish response for '{dish_name}': {res}")
-            except Exception as e:
-                log("ERROR", f"Failed to prepare dish '{dish_name}': {e}")
-            
-            # Piccolo delay per non martellare il server MCP
-            await asyncio.sleep(0.5)
-    else:
-        log("AGENT", "No ACTIVE_MENU set, skipping preparation. Menu is empty.")
+    global DISHES_READY
+
+    log("PHASE", "serving")
+
+    if not ACTIVE_MENU:
+        log("SERVE", "Menu vuoto, nessuna preparazione")
+        return
+
+    for item in ACTIVE_MENU:
+        dish_name = str(item.get("name", "")).strip()
+        if not dish_name:
+            continue
+
+        DISHES_READY[dish_name] = False
+        await call_mcp("prepare_dish", {"dish_name": dish_name})
+        await asyncio.sleep(0.2)
 
 
-async def end_turn() -> None:
-    log("EVENT", "turn ended")
+def _get_client_id_from_event(data: dict[str, Any]) -> str | None:
+    for key in ("clientId", "customerId", "client_id", "id"):
+        value = data.get(key)
+        if value is not None:
+            return str(value)
+    return None
 
-    global CURRENT_TURN_ID
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("TRACKERS", f"Running end-of-turn trackers for turn {CURRENT_TURN_ID}...")
-        try:
-            db = init_firebase()
-            if db:
-                # Esegui meals tracker e menu tracker in parallelo
-                meals_data, menus_data = await asyncio.gather(
-                    collect_turn_meals(CURRENT_TURN_ID),
-                    collect_all_menus(),
-                )
-                # Salva entrambi (operazioni di I/O Firestore in thread separato)
-                tasks = []
-                if meals_data:
-                    tasks.append(asyncio.to_thread(
-                        save_to_firebase, db, CURRENT_TURN_ID, RUN_ID, meals_data
-                    ))
-                else:
-                    log("MEALS", "⚠️  No meals data collected.")
-                if menus_data:
-                    tasks.append(asyncio.to_thread(
-                        save_menus_to_firebase, db, CURRENT_TURN_ID, RUN_ID, menus_data
-                    ))
-                else:
-                    log("MENUS", "⚠️  No menu data collected.")
-                if tasks:
-                    await asyncio.gather(*tasks)
-                log("TRACKERS", f"✅ Turn {CURRENT_TURN_ID} data saved to Firebase.")
-            else:
-                log("TRACKERS", "⚠️  Firebase not available, skipping save.")
-        except Exception as e:
-            log("ERROR", f"End-of-turn trackers failed: {e}")
-    else:
-        log("TRACKERS", "⚠️  Unknown turn_id, skipping end-of-turn save.")
+
+def _pick_dish_for_order(order_text: str) -> str | None:
+    normalized = _normalize_order_text(order_text)
+    if not normalized:
+        return None
+
+    for item in ACTIVE_MENU:
+        dish_name = str(item.get("name", "")).strip()
+        if not dish_name:
+            continue
+        if dish_name.lower() in normalized:
+            return dish_name
+
+    return None
+
+
+async def resolve_client_id_from_meals(order_text: str, client_name: str | None) -> str | None:
+    if CURRENT_TURN_ID <= 0:
+        return None
+
+    meals = await get_my_meals(CURRENT_TURN_ID)
+    if not meals:
+        return None
+
+    target_order = _normalize_order_text(order_text)
+    target_name = str(client_name or "").strip().lower()
+
+    for meal in meals:
+        if meal.get("executed") is True:
+            continue
+
+        req = _normalize_order_text(str(meal.get("request", "")))
+        meal_customer = meal.get("customer", {}) if isinstance(meal.get("customer"), dict) else {}
+        meal_name = str(meal_customer.get("name", "")).strip().lower()
+
+        order_match = bool(target_order and target_order in req)
+        name_match = bool(target_name and target_name == meal_name)
+        if not (order_match or name_match):
+            continue
+
+        for key in ("customerId", "customer_id", "clientId", "id"):
+            value = meal.get(key)
+            if value is not None:
+                return str(value)
+
+    return None
 
 
 async def client_spawned(data: dict[str, Any]) -> None:
-    global ACTIVE_MENU, DISHES_READY
-    import api as game_api
+    client_name = str(data.get("clientName", data.get("name", "")))
+    order_text = str(data.get("orderText", data.get("order", "")))
 
-    # Stampiomo TUTTO il pacchetto ricevuto per sicurezza al fine di debug
-    log("EVENT-DEBUG", f"Raw client spawned data: {data}")
+    dish_name = _pick_dish_for_order(order_text)
+    if not dish_name:
+        return
 
-    # Estrazione a prova di bomba
-    client_id   = data.get("clientId")
-    if client_id is None:
-        client_id = data.get("id")
-    if client_id is None:
-        client_id = data.get("client_id")
-    if client_id is None:
-        client_id = data.get("clientID")
-        
-    client_name = data.get("clientName", data.get("name", "unknown"))
-    order_text  = str(data.get("orderText", data.get("order", "")))
-    clean_order = order_text.lower().strip()
-    
-    # NOVITA: Estrarre le intolleranze del cliente dal payload del server
-    client_intolerances = set()
-    raw_intolerances = data.get("intolerances", [])
-    if isinstance(raw_intolerances, list):
-        client_intolerances = set([str(x).lower().strip() for x in raw_intolerances])
+    if DISHES_READY.get(dish_name) is not True:
+        return
 
-    log("EVENT", f"client={client_name} (id={client_id}) order={clean_order} intolerances={client_intolerances}")
+    client_id = _get_client_id_from_event(data)
+    if not client_id:
+        client_id = await resolve_client_id_from_meals(order_text, client_name)
 
-    # Tentiamo di servire il cliente scorrendo i piatti attivi nel nostro menu multipiatto
-    if ACTIVE_MENU:
-        match_found = False
-        target_dish_served = None
-        
-        for recipe in ACTIVE_MENU:
-            dish_name = recipe.get("name")
-            if dish_name and dish_name.lower() in clean_order:
-                # Controlliamo se questo piatto specifico ha la campanella "Pronto" suonata
-                if DISHES_READY.get(dish_name) is True:
-                    
-                    # SICUREZZA INTOLLERANZE (Dal codice del progetto "domenicAIn")
-                    recipe_ingredients = set([str(k).lower().strip() for k in recipe.get("ingredients", {}).keys()])
-                    intersection = recipe_ingredients.intersection(client_intolerances)
-                    
-                    if intersection:
-                        log("ERROR", f"BLOCKED! Dish '{dish_name}' contains intolerances {intersection} for client {client_name}.")
-                        continue # Skippa questo piatto, è tossico per lui
-                    
-                    match_found = True
-                    target_dish_served = dish_name
-                    break
-                    
-        # Se abbiamo trovato un piatto pronto e compatibile nel pool
-        if match_found and target_dish_served:
-            try:
-                # RECUPERIAMO IL VERO ID DAL SERVER tramite GET /meals
-                real_client_id = client_id
-                if CURRENT_TURN_ID:
-                    meals_data = await game_api.get_meals(CURRENT_TURN_ID)
-                    if meals_data:
-                        # DEBUG: stamperà come è fatto l'array meals restituito dall'API
-                        log("EVENT-DEBUG", f"/meals response: {meals_data}")
-                        
-                        for meal in meals_data:
-                            # Struttura esatta dal DB Datapizza: {'customerId': 390, 'request': "I want to eat Piatto...", 'customer': {'name': '...'}}
-                            customer_info = meal.get("customer", {})
-                            meal_client_name = str(customer_info.get("name", meal.get("client_name", meal.get("name", ""))))
-                            meal_order_full  = str(meal.get("request", meal.get("order", ""))).lower().strip()
-                            
-                            is_same_client = False
-                            if client_name and (client_name == meal_client_name):
-                                is_same_client = True
-                            
-                            is_same_order = False
-                            # L'orderText di SSE è "Nome Piatto", ma in "request" c'è l'intera frase "I want to eat X. I'm intolerant to Y". Check di inclusione.
-                            if clean_order and (clean_order in meal_order_full):
-                                is_same_order = True
-                            
-                            is_executed = meal.get("executed", False)
-                            
-                            if (not is_executed) and (is_same_client or is_same_order):
-                                meal_client_id = meal.get("customerId", meal.get("customer_id", meal.get("id")))
-                                if meal_client_id is not None:
-                                    real_client_id = str(meal_client_id)
-                                    break
-                
-                if real_client_id:
-                    log("AGENT", f"🚀 Serving '{target_dish_served}' to client {client_name} (real_id={real_client_id})...")
-                    res = await mcp_client.call_tool("serve_dish", {"dish_name": target_dish_served, "client_id": real_client_id})
-                    log("AGENT", f"serve_dish response: {res}")
-                    
-                    # Consumato il piatto, lo impostiamo come non più "Pronto" per liberare la cucina
-                    DISHES_READY[target_dish_served] = False
-                    
-                    # OPZIONALE: Rimettiamo in preparazione il piatto appena servito se vogliamo una pipeline infinita (se ci sono avanzi in inventario)
-                    try:
-                        log("AGENT", f"🔄 Re-queuing preparation for '{target_dish_served}' to restock shelf...")
-                        await mcp_client.call_tool("prepare_dish", {"dish_name": target_dish_served})
-                    except Exception as prep_e:
-                        log("ERROR", f"Failed to re-queue dish {target_dish_served}: {prep_e}")
-                        
-                else:
-                    log("ERROR", f"Could not find a valid real_client_id for {client_name} from /meals!")
-            except Exception as e:
-                log("ERROR", f"Failed to serve dish: {e}")
+    if not client_id:
+        log("SERVE", f"Nessun client_id trovato per ordine '{order_text}'")
+        return
+
+    await call_mcp("serve_dish", {"dish_name": dish_name, "client_id": client_id})
+    DISHES_READY[dish_name] = False
+
+    # Rimettiamo in preparazione il piatto servito per rifornire la linea.
+    await call_mcp("prepare_dish", {"dish_name": dish_name})
 
 
 async def preparation_complete(data: dict[str, Any]) -> None:
-    global DISHES_READY
-    dish_name = data.get("dish", "unknown")
+    dish_name = str(data.get("dish", "")).strip()
+    if not dish_name:
+        return
+
     DISHES_READY[dish_name] = True
-    log("EVENT", f"dish ready: {dish_name}")
 
 
 async def message(data: dict[str, Any]) -> None:
-    sender = data.get("sender", "unknown")
-    text = data.get("payload", "")
-    log("EVENT", f"message from {sender}: {text}")
+    sender = data.get("sender")
+    payload = data.get("payload")
+    log("MSG", f"from={sender} payload={payload}")
+
+
+async def new_message(data: dict[str, Any]) -> None:
+    sender_name = data.get("senderName", data.get("senderId", "unknown"))
+    text = data.get("text", "")
+    log("DM", f"from={sender_name}: {text}")
+
+
+async def end_turn() -> None:
+    log("PHASE", f"stopped turn={CURRENT_TURN_ID}")
+
+    if CURRENT_TURN_ID <= 0:
+        return
+
+    db = init_firebase()
+    if db is None:
+        log("TRACK", "Firebase non disponibile, skip salvataggio tracker")
+        return
+
+    try:
+        meals_data, menus_data = await asyncio.gather(
+            collect_turn_meals(CURRENT_TURN_ID),
+            collect_all_menus(),
+        )
+
+        tasks: list[Awaitable[Any]] = []
+        if meals_data:
+            tasks.append(
+                asyncio.to_thread(
+                    save_meals_to_firebase,
+                    db,
+                    CURRENT_TURN_ID,
+                    RUN_ID,
+                    meals_data,
+                )
+            )
+        if menus_data:
+            tasks.append(
+                asyncio.to_thread(
+                    save_menus_to_firebase,
+                    db,
+                    CURRENT_TURN_ID,
+                    RUN_ID,
+                    menus_data,
+                )
+            )
+
+        if tasks:
+            await asyncio.gather(*tasks)
+    except Exception as exc:
+        log("TRACK", f"Errore salvataggio tracker: {exc}")
 
 
 async def game_phase_changed(data: dict[str, Any]) -> None:
     global CURRENT_TURN_ID
-    phase = data.get("phase", "unknown")
-    
-    # Recupera il turn_id dall'evento se ci siamo persi il game_started (es. restart)
-    recovered_turn_id = data.get("turn_id")
-    if recovered_turn_id and (CURRENT_TURN_ID is None or CURRENT_TURN_ID == 0):
-        CURRENT_TURN_ID = recovered_turn_id
-        log("AGENT", f"[RECOVERY] Recovered turn_id={CURRENT_TURN_ID} from phase event '{phase}'")
 
+    if data.get("turn_id") is not None:
+        CURRENT_TURN_ID = int(data["turn_id"])
+
+    phase = data.get("phase", "unknown")
     handlers: dict[str, Callable[[], Awaitable[None]]] = {
         "speaking": speaking_phase_started,
-        "closed_bid": closed_bid_phase_started,
+        "closed_bid": lambda: closed_bid_phase_started(data),
         "waiting": waiting_phase_started,
         "serving": serving_phase_started,
         "stopped": end_turn,
     }
+
     handler = handlers.get(phase)
     if handler:
         await handler()
     else:
-        log("EVENT", f"unknown phase: {phase}")
+        log("PHASE", f"fase non gestita: {phase}")
 
 
 async def game_reset(data: dict[str, Any]) -> None:
-    if data:
-        log("EVENT", f"game reset: {data}")
-    else:
-        log("EVENT", "game reset")
+    log("EVENT", f"game_reset {data}")
 
 
 EVENT_HANDLERS: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {
@@ -574,27 +507,21 @@ EVENT_HANDLERS: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {
     "client_spawned": client_spawned,
     "preparation_complete": preparation_complete,
     "message": message,
+    "new_message": new_message,
 }
 
-##########################################################################################
-#                                    DANGER ZONE                                         #
-##########################################################################################
-# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
 
-
-# It is the central event dispatcher used by all handlers.
 async def dispatch_event(event_type: str, event_data: dict[str, Any]) -> None:
     handler = EVENT_HANDLERS.get(event_type)
     if not handler:
         return
+
     try:
         await handler(event_data)
     except Exception as exc:
         log("ERROR", f"handler failed for {event_type}: {exc}")
 
 
-# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
-# It parses SSE lines and translates them into internal events.
 async def handle_line(raw_line: bytes) -> None:
     if not raw_line:
         return
@@ -603,7 +530,6 @@ async def handle_line(raw_line: bytes) -> None:
     if not line:
         return
 
-    # Standard SSE data format: data: ...
     if line.startswith("data:"):
         payload = line[5:].strip()
         if payload == "connected":
@@ -614,19 +540,17 @@ async def handle_line(raw_line: bytes) -> None:
     try:
         event_json = json.loads(line)
     except json.JSONDecodeError:
-        log("SSE", f"raw: {line}")
         return
 
     event_type = event_json.get("type", "unknown")
     event_data = event_json.get("data", {})
+
     if isinstance(event_data, dict):
         await dispatch_event(event_type, event_data)
     else:
         await dispatch_event(event_type, {"value": event_data})
 
 
-# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
-# It owns the SSE HTTP connection lifecycle.
 async def listen_once(session: aiohttp.ClientSession) -> None:
     url = f"{BASE_URL}/events/{TEAM_ID}"
     headers = {"Accept": "text/event-stream", "x-api-key": TEAM_API_KEY}
@@ -638,18 +562,13 @@ async def listen_once(session: aiohttp.ClientSession) -> None:
             await handle_line(line)
 
 
-# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
-# It controls script exit behavior when the SSE connection drops.
 async def listen_once_and_exit_on_drop() -> None:
     timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=None)
-
     async with aiohttp.ClientSession(timeout=timeout) as session:
         await listen_once(session)
         log("SSE", "connection closed, exiting")
 
 
-# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
-# Keep this minimal to avoid changing startup behavior.
 async def main() -> None:
     log("INIT", f"team={TEAM_ID} base_url={BASE_URL}")
     await listen_once_and_exit_on_drop()
