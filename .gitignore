@@ -2,3 +2,4 @@ doc/
 .env
 datapizza_venv/
 setup-datapizza-ai/
+firebase_credentials.json

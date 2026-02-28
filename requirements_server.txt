@@ -1,3 +1,5 @@
 aiohttp
 datapizza-ai
 datapizza-ai-clients-openai-like
+firebase-admin
+python-dotenv
