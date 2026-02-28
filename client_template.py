@@ -14,11 +14,9 @@ from typing import Any, Awaitable, Callable
 
 import aiohttp
 
-# PRICE ANALYST IMPORT
-from price_analyst.bid_tracker import fetch_and_save_bid_history
-from price_analyst.agent import get_bidding_prices
 
 
+from datapizza.tools.mcp_client import MCPClient
 import os
 from dotenv import load_dotenv
 
@@ -36,6 +34,12 @@ if not TEAM_API_KEY or not TEAM_ID:
 # GLOBALE VARIAVLE TO STORE the TURNEMENT
 CURRENT_TURN_ID = None
 
+# INIZIALIZZIAMO MCP CLIENT
+mcp_client = MCPClient(
+    url=f"{BASE_URL}/mcp",
+    headers={"x-api-key": TEAM_API_KEY}
+)
+
 
 def log(tag: str, message: str) -> None:
     print(f"[{tag}] {datetime.now()}: {message}")
@@ -51,6 +55,46 @@ async def game_started(data: dict[str, Any]) -> None:
 
     log("EVENT", "game started, turn id: " + str(turn_id))
 
+    # 1. Apriamo il ristorante in ogni nuova run
+    try:
+        log("AGENT", "Opening the restaurant for the new turn.")
+        res = await mcp_client.call_tool("update_restaurant_is_open", {"is_open": True})
+        log("AGENT", f"MCP Tool Response (Open Menu): {res}")
+    except Exception as e:
+        log("ERROR", f"Failed to open restaurant: {e}")
+
+    # 2. Otteniamo i ristoranti attivi per mandarci un messaggio (massimo 2)
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = f"{BASE_URL}/restaurants"
+            headers = {"x-api-key": TEAM_API_KEY}
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    if isinstance(data, list):
+                        restaurants = data
+                    elif isinstance(data, dict) and "restaurants" in data:
+                        restaurants = data["restaurants"]
+                    else:
+                        restaurants = []
+
+                    msg = "cosa avete oggi nel menu?"
+                    count = 0
+                    for rest in restaurants:
+                        rest_id = rest.get("id")
+                        if rest_id is not None and str(rest_id) != str(TEAM_ID) and rest.get("isOpen") is True:
+                            try:
+                                await mcp_client.call_tool("send_message", {"recipient_id": rest_id, "text": msg})
+                                count += 1
+                            except Exception as e:
+                                log("ERROR", f"Failed to send message to {rest_id}: {e}")
+                    log("AGENT", f"Sent test message to {count} open restaurants.")
+                else:
+                    log("ERROR", f"Failed to fetch restaurants: HTTP {response.status}")
+    except Exception as e:
+        log("ERROR", f"Error during speaking phase message distribution: {e}")
+
 
 async def speaking_phase_started() -> None:
     log("EVENT", "speaking phase started")
@@ -58,36 +102,13 @@ async def speaking_phase_started() -> None:
 
 async def closed_bid_phase_started() -> None:
     log("EVENT", "closed bid phase started")
-    
-    global CURRENT_TURN_ID
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID}...")
         
-        # We run the agent synchronously in a separate thread so we don't block the asyncio event loop
-        prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
-        
-        if prices:
-            log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
-            # FUTURE: Submit these bids to the server using the team API
-    else:
-        log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
+    # TODO: Implement closed bid logic here
 
 
 async def waiting_phase_started() -> None:
     log("EVENT", "waiting phase started")
-
-    global CURRENT_TURN_ID
-    if CURRENT_TURN_ID != 0:
-        log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
-        # Launch the task in the background without blocking the SSE
-        asyncio.create_task(fetch_and_save_bid_history(
-            turn_id=CURRENT_TURN_ID,
-            api_key=TEAM_API_KEY,
-            base_url=BASE_URL,
-            cred_path=CRED_PATH
-        ))
-    else:
-        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
+    # TODO: Implement waiting phase logic here
 
 
 async def serving_phase_started() -> None:
