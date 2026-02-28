@@ -10,6 +10,7 @@
 import asyncio
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 import aiohttp
@@ -102,7 +103,7 @@ def get_ingredient_prices_from_history() -> dict:
 
 
 MAX_MENU_PRICE = 999
-DEFAULT_ING_PRICE = 65
+DEFAULT_ING_PRICE = 20
 
 def estimate_recipe_cost(recipe: dict, price_history: dict) -> float:
     """Stima il costo totale degli ingredienti di una ricetta dai prezzi storici."""
@@ -153,12 +154,12 @@ async def _run_planner() -> None:
         log('ERROR', f'_run_planner failed: {e}')
 
 async def game_started(data: dict[str, Any]) -> None:
-    global CURRENT_TURN_ID
+    global CURRENT_TURN_ID, ACTIVE_MENU, DISHES_READY
 
     turn_id = data.get("turn_id", None)
     CURRENT_TURN_ID = turn_id
-    DISH_READY = False
-    TARGET_RECIPE = None # Reset recipe at start of turn since we define it in waiting phase!
+    DISHES_READY = {}
+    ACTIVE_MENU = [] # Reset menu completely at start of turn
 
     log("EVENT", "game started, turn id: " + str(turn_id))
 
@@ -225,7 +226,7 @@ async def speaking_phase_started() -> None:
 async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
     log("EVENT", "closed bid phase started")
         
-    global CURRENT_TURN_ID, LAST_BID_INGREDIENT, TARGET_RECIPE
+    global CURRENT_TURN_ID, LAST_BID_INGREDIENT, ACTIVE_MENU
     import api as game_api
     
     if data and data.get("turn_id"):
@@ -239,26 +240,45 @@ async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
             if not recipes:
                 log("AGENT", "No recipes found, skipping bid.")
                 return
-            real_ingredients = set()
-            for recipe in recipes:
-                for ing in recipe.get("ingredients", {}).keys():
-                    real_ingredients.add(ing)
-                    
             history_prices = get_ingredient_prices_from_history()
+            
+            # 1) Troviamo "i prodotti giusti": ordiniamo tutte le ricette dal prezzo teorico minore
+            sorted_recipes_by_cost = sorted(recipes, key=lambda r: sum(history_prices.get(i, DEFAULT_ING_PRICE) * q for i, q in r.get("ingredients", {}).items()))
+            
+            # 2) Prendiamo le prime 5 ricette più economiche come focus di acquisto
+            focus_recipes = sorted_recipes_by_cost[:5]
+            
+            target_ingredients = set()
+            for r in focus_recipes:
+                for ing in r.get("ingredients", {}).keys():
+                    target_ingredients.add(ing)
+                    
             merged_prices = {}
-            for ing in real_ingredients:
+            for ing in target_ingredients:
                 merged_prices[ing] = history_prices.get(ing, DEFAULT_ING_PRICE)
                 
             sorted_ings = sorted(merged_prices.items(), key=lambda x: x[1])
-            cheapest_ings = sorted_ings[:25]
             
             bids_payload = []
-            for ing, price in cheapest_ings:
-                bids_payload.append({
-                    "ingredient": ing,
-                    "bid": int(price + 1),
-                    "quantity": 2
-                })
+            BUDGET = 800
+            current_spent = 0
+            
+            for ing, price in sorted_ings:
+                # ABBASSIAMO L'OFFERTA AL MINIMO SINDACALE PER PRENDERE VOLUMI ENORMI (max 1/3 dello storico o almeno 2cr)
+                offer = max(2, int(price * 0.33))
+                qty = 3 # Aumentiamo la quantity per ing
+                
+                spesa_prevista = offer * qty
+                if current_spent + spesa_prevista <= BUDGET:
+                    bids_payload.append({
+                        "ingredient": ing,
+                        "bid": offer,
+                        "quantity": qty
+                    })
+                    current_spent += spesa_prevista
+                else:
+                    # Abbiamo saturato il budget degli 800 crediti
+                    break
                 
             if bids_payload:
                 log("AGENT", f"Placing {len(bids_payload)} bulk bids on cheap ingredients.")
@@ -276,7 +296,7 @@ async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
 async def waiting_phase_started() -> None:
     log("EVENT", "waiting phase started")
 
-    global CURRENT_TURN_ID, TARGET_RECIPE
+    global CURRENT_TURN_ID, ACTIVE_MENU
     import api as game_api
     if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
         log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
@@ -289,91 +309,84 @@ async def waiting_phase_started() -> None:
     else:
         log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
 
-    # 2. in base a quello che hai comprato definisci le ricette e imposta un prezzo basso (guadagno 1%)
+    # 2. Definisci il multipiatto per saturare l'inventario (prezzo fisso 100cr)
     try:
-        log("AGENT", "Fetching inventory to define recipes based on what we bought...")
+        log("AGENT", "Fetching inventory to define multi-dish menu...")
         my_restaurant = await game_api.get_my_restaurant()
         if not my_restaurant:
             log("ERROR", "Could not fetch restaurant status in waiting phase.")
             return
             
         inventory = my_restaurant.get("inventory", {})
-        log("AGENT", f"Current inventory: {inventory}")
+        log("AGENT", f"Current root inventory: {inventory}")
         
+        # Facciamo una copia profonda in modo da scalarla mentre scegliamo ricette multiple
+        local_inv = dict(inventory)
+
         recipes = await game_api.get_recipes()
-        feasible_recipes = []
+        history_prices = get_ingredient_prices_from_history()
         
-        for recipe in recipes:
+        # Ordiniamo le ricette per costo storico (crescente) per privilegiare roba economica da fare in volume
+        sorted_recipes = sorted(recipes, key=lambda r: sum(history_prices.get(i, DEFAULT_ING_PRICE) * q for i, q in r.get("ingredients", {}).items()))
+        
+        ACTIVE_MENU = []
+        
+        for recipe in sorted_recipes:
+            # Controllo quante volte posso fare questa recipe col local_inv attuale
             can_make = True
             for ing, qty_needed in recipe.get("ingredients", {}).items():
-                if inventory.get(ing, 0) < qty_needed:
+                if local_inv.get(ing, 0) < qty_needed:
                     can_make = False
                     break
-            if can_make:
-                feasible_recipes.append(recipe)
-                
-        if feasible_recipes:
-            history_prices = get_ingredient_prices_from_history()
-            best_recipe = None
-            lowest_cost = float('inf')
             
-            for r in feasible_recipes:
-                cost = sum(history_prices.get(ing, DEFAULT_ING_PRICE) * qty for ing, qty in r.get("ingredients", {}).items())
-                if cost < lowest_cost:
-                    lowest_cost = cost
-                    best_recipe = r
-                    
-            if best_recipe:
-                TARGET_RECIPE = best_recipe
-                cost = lowest_cost
-                # prezzo basso (guadagno 1%)
-                target_price = max(1, int(cost * 1.01))
-                TARGET_RECIPE["recommended_price"] = target_price
-                log("AGENT", f"Determined TARGET_RECIPE based on inventory: '{TARGET_RECIPE['name']}' at price {target_price}")
+            if can_make:
+                # Sottraggo dall'inventario locale teorico
+                for ing, qty_needed in recipe.get("ingredients", {}).items():
+                    local_inv[ing] -= qty_needed
                 
-                # IMPORTANTE devi salvare il menu
-                menu_payload = [{"name": TARGET_RECIPE["name"], "price": target_price}]
-                res = await mcp_client.call_tool("save_menu", {"items": menu_payload})
-                log("AGENT", f"save_menu response: {res}")
+                # Aggiungo la ricetta al menu attivo
+                recipe["recommended_price"] = 100
+                ACTIVE_MENU.append(recipe)
+                log("AGENT", f"Greedy Allocator -> Added '{recipe['name']}' to ACTIVE_MENU. Updated local_inv leftover: {local_inv}")
+                
+        # Prepariamo il payload finale per salvare il menù (non fa niente se è andato tutto a zero e menu è vuoto, ma noi proveremo sempre a salvare)
+        if ACTIVE_MENU:
+            menu_payload = [{"name": r["name"], "price": r["recommended_price"]} for r in ACTIVE_MENU]
+            log("AGENT", f"Final Computed Menu: {menu_payload}")
+            res = await mcp_client.call_tool("save_menu", {"items": menu_payload})
+            log("AGENT", f"save_menu response: {res}")
         else:
-            log("AGENT", "No feasible recipes with current inventory.")
-            TARGET_RECIPE = None
+            log("AGENT", "No feasible recipes with current inventory. Keeping menu empty/closed.")
+            ACTIVE_MENU = []
     except Exception as e:
         log("ERROR", f"Waiting phase menu setting failed: {e}")
 
 
 async def serving_phase_started() -> None:
     log("EVENT", "serving phase started")
-    global TARGET_RECIPE, DISH_READY
+    global ACTIVE_MENU, DISHES_READY
     
-    # IMPORTANTE: preparare il piatto e venderlo ai clienti (la vendita è in client_spawned)
-    if TARGET_RECIPE:
-        dish_name = TARGET_RECIPE.get("name")
-        log("AGENT", f"🍳 Preparing dish: '{dish_name}'...")
-        try:
-            res = await mcp_client.call_tool("prepare_dish", {"dish_name": dish_name})
-            log("AGENT", f"prepare_dish response: {res}")
-        except Exception as e:
-            log("ERROR", f"Failed to prepare dish: {e}")
+    # Mettiamo in griglia di preparazione (parallelamente) tutti i piatti del menu
+    if ACTIVE_MENU:
+        for recipe in ACTIVE_MENU:
+            dish_name = recipe.get("name")
+            DISHES_READY[dish_name] = False # Inizializziamo lo stato
+            log("AGENT", f"🍳 Preparing dish multi-menu: '{dish_name}'...")
+            try:
+                res = await mcp_client.call_tool("prepare_dish", {"dish_name": dish_name})
+                log("AGENT", f"prepare_dish response for '{dish_name}': {res}")
+            except Exception as e:
+                log("ERROR", f"Failed to prepare dish '{dish_name}': {e}")
+            
+            # Piccolo delay per non martellare il server MCP
+            await asyncio.sleep(0.5)
     else:
-        log("AGENT", "No TARGET_RECIPE set, skipping preparation. Looking at server menu instead...")
-        # Fallback if no feasible recipe found, try to see if we had one and just use its name
-        try:
-            import api as game_api
-            my_restaurant = await game_api.get_my_restaurant()
-            menu_items = my_restaurant.get("menu", {}).get("items", [])
-            if menu_items:
-                fallback_dish = menu_items[0].get("name")
-                log("AGENT", f"🍳 Fallback Preparing dish: '{fallback_dish}'...")
-                res = await mcp_client.call_tool("prepare_dish", {"dish_name": fallback_dish})
-                log("AGENT", f"prepare_dish fallback response: {res}")
-        except Exception as e:
-            log("ERROR", f"Failed fallback prepare: {e}")
+        log("AGENT", "No ACTIVE_MENU set, skipping preparation. Menu is empty.")
 
 
 async def end_turn() -> None:
     log("EVENT", "turn ended")
-    global TARGET_RECIPE
+    global ACTIVE_MENU, DISHES_READY
 
     # Pre-calcola la ricetta migliore per il turno SUCCESSIVO (OR-Tools)
     # così è già pronta quando scatta game_started
@@ -382,14 +395,93 @@ async def end_turn() -> None:
 
 
 async def client_spawned(data: dict[str, Any]) -> None:
-    client_name = data.get("clientName", "unknown")
-    order_text = str(data.get("orderText", "unknown"))
-    order_text = order_text.lower().replace("i'd like a ", "").replace("i'd like ", "")
-    log("EVENT", f"client={client_name} order={order_text}")
+    global ACTIVE_MENU, DISHES_READY
+    import api as game_api
+
+    # Stampiomo TUTTO il pacchetto ricevuto per sicurezza al fine di debug
+    log("EVENT-DEBUG", f"Raw client spawned data: {data}")
+
+    # Estrazione a prova di bomba
+    client_id   = data.get("clientId")
+    if client_id is None:
+        client_id = data.get("id")
+    if client_id is None:
+        client_id = data.get("client_id")
+    if client_id is None:
+        client_id = data.get("clientID")
+        
+    client_name = data.get("clientName", data.get("name", "unknown"))
+    order_text  = str(data.get("orderText", data.get("order", "")))
+    clean_order = order_text.lower().strip()
+
+    log("EVENT", f"client={client_name} (id={client_id}) order={clean_order}")
+
+    # Tentiamo di servire il cliente scorrendo i piatti attivi nel nostro menu multipiatto
+    if ACTIVE_MENU:
+        match_found = False
+        target_dish_served = None
+        
+        for recipe in ACTIVE_MENU:
+            dish_name = recipe.get("name")
+            if dish_name and dish_name.lower() in clean_order:
+                # Controlliamo se questo piatto specifico ha la campanella "Pronto" suonata
+                if DISHES_READY.get(dish_name) is True:
+                    match_found = True
+                    target_dish_served = dish_name
+                    break
+                    
+        # Se abbiamo trovato un piatto pronto e compatibile nel pool
+        if match_found and target_dish_served:
+            try:
+                # RECUPERIAMO IL VERO ID DAL SERVER tramite GET /meals
+                real_client_id = client_id
+                if CURRENT_TURN_ID:
+                    meals_data = await game_api.get_meals(CURRENT_TURN_ID)
+                    if meals_data:
+                        # DEBUG: stamperà come è fatto l'array meals restituito dall'API
+                        log("EVENT-DEBUG", f"/meals response: {meals_data}")
+                        
+                        for meal in meals_data:
+                            # Cerchiamo un pasto non ancora servito che combaci con il nome del cliente
+                            meal_client_name = str(meal.get("client_name", meal.get("name", meal.get("clientName", ""))))
+                            meal_order = str(meal.get("order", meal.get("orderText", ""))).lower().strip()
+                            
+                            is_same_client = (meal_client_name == str(client_name)) if client_name else False
+                            is_same_order = (meal_order == clean_order) if clean_order else False
+                            
+                            is_executed = meal.get("executed", False)
+                            
+                            if (not is_executed) and (is_same_client or is_same_order):
+                                meal_client_id = meal.get("client_id", meal.get("id", meal.get("clientId")))
+                                if meal_client_id is not None:
+                                    real_client_id = str(meal_client_id)
+                                    break
+                
+                if real_client_id:
+                    log("AGENT", f"🚀 Serving '{target_dish_served}' to client {client_name} (real_id={real_client_id})...")
+                    res = await mcp_client.call_tool("serve_dish", {"dish_name": target_dish_served, "client_id": real_client_id})
+                    log("AGENT", f"serve_dish response: {res}")
+                    
+                    # Consumato il piatto, lo impostiamo come non più "Pronto" per liberare la cucina
+                    DISHES_READY[target_dish_served] = False
+                    
+                    # OPZIONALE: Rimettiamo in preparazione il piatto appena servito se vogliamo una pipeline infinita (se ci sono avanzi in inventario)
+                    try:
+                        log("AGENT", f"🔄 Re-queuing preparation for '{target_dish_served}' to restock shelf...")
+                        await mcp_client.call_tool("prepare_dish", {"dish_name": target_dish_served})
+                    except Exception as prep_e:
+                        log("ERROR", f"Failed to re-queue dish {target_dish_served}: {prep_e}")
+                        
+                else:
+                    log("ERROR", f"Could not find a valid real_client_id for {client_name} from /meals!")
+            except Exception as e:
+                log("ERROR", f"Failed to serve dish: {e}")
 
 
 async def preparation_complete(data: dict[str, Any]) -> None:
+    global DISHES_READY
     dish_name = data.get("dish", "unknown")
+    DISHES_READY[dish_name] = True
     log("EVENT", f"dish ready: {dish_name}")
 
 
