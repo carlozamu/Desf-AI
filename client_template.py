@@ -19,6 +19,12 @@ from typing import Any, Awaitable, Callable
 import aiohttp
 from dotenv import load_dotenv
 
+try:
+    from seller.agent import run_seller_agent
+except ImportError as _e:
+    print(f"[WARN] seller agent not available: {_e}")
+    async def run_seller_agent(turn_id: int): pass
+
 from datapizza.tools.mcp_client import MCPClient
 from serving.meals_tracker import collect_turn_meals, init_firebase, save_to_firebase as save_meals_to_firebase, summarize_unserved_requests
 from serving.menu_tracker import collect_all_menus, get_lowest_competitor_price, save_to_firebase as save_menus_to_firebase
@@ -338,6 +344,13 @@ async def serving_phase_started() -> None:
     global DISHES_READY
 
     log("PHASE", "serving")
+
+    try:
+        log("SELLER", f"Running surplus seller for turn {CURRENT_TURN_ID}...")
+        await run_seller_agent(CURRENT_TURN_ID or 0)
+        log("SELLER", "Surplus seller completed.")
+    except Exception as e:
+        log("ERROR", f"Seller agent failed: {e}")
 
     if not ACTIVE_MENU:
         log("SERVE", "Menu vuoto, nessuna preparazione")
