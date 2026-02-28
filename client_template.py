@@ -14,6 +14,9 @@ from typing import Any, Awaitable, Callable
 
 import aiohttp
 
+# PRICE ANALYST IMPORT
+from price_analyst.bid_tracker import fetch_and_save_bid_history
+
 
 import os
 from dotenv import load_dotenv
@@ -22,11 +25,15 @@ load_dotenv()
 
 TEAM_ID = os.getenv("TEAM_ID")
 TEAM_API_KEY = os.getenv("SERVER_API_KEY")
+CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 BASE_URL = "https://hackapizza.datapizza.tech"
 
 if not TEAM_API_KEY or not TEAM_ID:
     raise SystemExit("Set TEAM_API_KEY and TEAM_ID")
+
+# GLOBALE VARIAVLE TO STORE the TURNEMENT
+CURRENT_TURN_ID = None
 
 
 def log(tag: str, message: str) -> None:
@@ -34,7 +41,13 @@ def log(tag: str, message: str) -> None:
 
 
 async def game_started(data: dict[str, Any]) -> None:
-    turn_id = data.get("turn_id", 0)
+    global CURRENT_TURN_ID
+
+    turn_id = data.get("turn_id", None)
+
+    # Store the turnement id
+    CURRENT_TURN_ID = turn_id 
+
     log("EVENT", "game started, turn id: " + str(turn_id))
 
 
@@ -48,6 +61,19 @@ async def closed_bid_phase_started() -> None:
 
 async def waiting_phase_started() -> None:
     log("EVENT", "waiting phase started")
+
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID != 0:
+        log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
+        # Launch the task in the background without blocking the SSE
+        asyncio.create_task(fetch_and_save_bid_history(
+            turn_id=CURRENT_TURN_ID,
+            api_key=TEAM_API_KEY,
+            base_url=BASE_URL,
+            cred_path=CRED_PATH
+        ))
+    else:
+        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
 
 
 async def serving_phase_started() -> None:
