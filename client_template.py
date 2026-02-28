@@ -14,8 +14,14 @@ from typing import Any, Awaitable, Callable
 
 import aiohttp
 
-TEAM_ID = 0  # your team id
-TEAM_API_KEY = "your_team_api_key"
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TEAM_ID = os.getenv("TEAM_ID")
+TEAM_API_KEY = os.getenv("SERVER_API_KEY")
 
 BASE_URL = "https://hackapizza.datapizza.tech"
 
