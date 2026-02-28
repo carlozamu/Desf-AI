@@ -16,6 +16,10 @@ import aiohttp
 
 
 
+from price_analyst.agent import get_bidding_prices
+from price_analyst.bid_tracker import fetch_and_save_bid_history
+from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
+
 from datapizza.tools.mcp_client import MCPClient
 import os
 from dotenv import load_dotenv
@@ -63,7 +67,11 @@ async def game_started(data: dict[str, Any]) -> None:
     except Exception as e:
         log("ERROR", f"Failed to open restaurant: {e}")
 
-    # 2. Otteniamo i ristoranti attivi per mandarci un messaggio (massimo 2)
+
+async def speaking_phase_started() -> None:
+    log("EVENT", "speaking phase started")
+    
+    # Manda 'cosa avete oggi nel menu?' a tutti i ristoranti aperti
     try:
         async with aiohttp.ClientSession() as session:
             url = f"{BASE_URL}/restaurants"
@@ -87,28 +95,98 @@ async def game_started(data: dict[str, Any]) -> None:
                             try:
                                 await mcp_client.call_tool("send_message", {"recipient_id": rest_id, "text": msg})
                                 count += 1
+                                log("AGENT", f"Sent message to restaurant {rest_id}")
                             except Exception as e:
                                 log("ERROR", f"Failed to send message to {rest_id}: {e}")
-                    log("AGENT", f"Sent test message to {count} open restaurants.")
+                    log("AGENT", f"Speaking phase: sent message to {count} open restaurants.")
                 else:
                     log("ERROR", f"Failed to fetch restaurants: HTTP {response.status}")
     except Exception as e:
         log("ERROR", f"Error during speaking phase message distribution: {e}")
 
 
-async def speaking_phase_started() -> None:
-    log("EVENT", "speaking phase started")
-
-
-async def closed_bid_phase_started() -> None:
+async def closed_bid_phase_started(data: dict[str, Any] = None) -> None:
     log("EVENT", "closed bid phase started")
         
-    # TODO: Implement closed bid logic here
+    global CURRENT_TURN_ID
+    
+    # Tentativo di recuperare il turn_id dal payload dell'evento se ci siamo persi il game_started
+    if data and data.get("turn_id"):
+        CURRENT_TURN_ID = data.get("turn_id")
+        
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID} using AI Analyst...")
+        
+        try:
+            # 1. Recupera la lista reale di ingredienti dal server tramite le ricette
+            real_ingredients: set[str] = set()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{BASE_URL}/recipes", headers={"x-api-key": TEAM_API_KEY}) as r:
+                    if r.status == 200:
+                        recipes = await r.json()
+                        for recipe in recipes:
+                            for ing in recipe.get("ingredients", {}).keys():
+                                real_ingredients.add(ing)
+                        log("AGENT", f"Loaded {len(real_ingredients)} real game ingredients from server.")
+                    else:
+                        log("ERROR", f"Could not fetch recipes: HTTP {r.status}")
+
+            if not real_ingredients:
+                log("AGENT", "No real ingredients found, skipping bid.")
+                return
+
+            # 2. Genera i prezzi tramite l'AI Analyst
+            prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+            
+            if prices and len(prices) > 0:
+                log("AGENT", f"AI Suggested prices for {len(prices)} items.")
+
+                # 3. Scegliamo il PRIMO ingrediente suggerito che esista davvero nel gioco
+                valid_ingredient = None
+                valid_price = None
+                for name, price in prices.items():
+                    if name in real_ingredients:
+                        valid_ingredient = name
+                        valid_price = price
+                        break
+
+                if valid_ingredient is None:
+                    # Fallback: prendi qualunque ingrediente reale disponibile
+                    valid_ingredient = next(iter(real_ingredients))
+                    valid_price = 20  # prezzo di fallback ragionevole
+                    log("AGENT", f"AI didn't suggest real ingredients, fallback to: {valid_ingredient}")
+
+                bids_payload = [{"ingredient": valid_ingredient, "bid": round(valid_price * 1.1, 2), "quantity": 1}]
+                log("AGENT", f"Placing SINGLE test bid: {json.dumps(bids_payload)}")
+                
+                # 4. Inviamo la transazione (Asta Cieca) via MCP Tool 
+                response = await mcp_client.call_tool("closed_bid", {"bids": bids_payload})
+                log("AGENT", f"MCP Tool Response (Closed Bid): {response}")
+                
+            else:
+                log("AGENT", "Nessun prezzo calcolato, salto il bid testuale.")
+                
+        except Exception as e:
+            log("ERROR", f"Bidding pipeline failed: {e}")
+    else:
+        log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
 
 
 async def waiting_phase_started() -> None:
     log("EVENT", "waiting phase started")
-    # TODO: Implement waiting phase logic here
+
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID != 0:
+        log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
+        # Launch the task in the background without blocking the SSE
+        asyncio.create_task(fetch_and_save_bid_history(
+            turn_id=CURRENT_TURN_ID,
+            api_key=TEAM_API_KEY,
+            base_url=BASE_URL,
+            cred_path=CRED_PATH
+        ))
+    else:
+        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
 
 
 async def serving_phase_started() -> None:
@@ -138,7 +216,15 @@ async def message(data: dict[str, Any]) -> None:
 
 
 async def game_phase_changed(data: dict[str, Any]) -> None:
+    global CURRENT_TURN_ID
     phase = data.get("phase", "unknown")
+    
+    # Recupera il turn_id dall'evento se ci siamo persi il game_started (es. restart)
+    recovered_turn_id = data.get("turn_id")
+    if recovered_turn_id and (CURRENT_TURN_ID is None or CURRENT_TURN_ID == 0):
+        CURRENT_TURN_ID = recovered_turn_id
+        log("AGENT", f"[RECOVERY] Recovered turn_id={CURRENT_TURN_ID} from phase event '{phase}'")
+
     handlers: dict[str, Callable[[], Awaitable[None]]] = {
         "speaking": speaking_phase_started,
         "closed_bid": closed_bid_phase_started,
