@@ -1,339 +1,284 @@
 🤖 Inizio calcolo prezzi per il turno 7...
 📝 Prompt inviato: Calculate the optimal bid prices for all items for turn 7. Review past turns if available.
-[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m17:45:01[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m STARTING AGENT [0m
-[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m17:45:01[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m1[0m[38;5;135m --- [0m
+[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m18:37:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m STARTING AGENT [0m
+[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m18:37:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m1[0m[38;5;135m --- [0m
 [1m<[0m[1;38;5;135mprice_analyst_expert[0m[1m>[0m
-[38;5;135m╭─[0m[38;5;135m──────────────────────────────────────────[0m[38;5;135m TOOL GET_PAST_BIDS RESULT [0m[38;5;135m───────────────────────────────────────────[0m[38;5;135m─╮[0m
-[38;5;135m│[0m {"turn_id": 6, "bids": [{"quantity": 2, "id": 1332, "restaurantId": 5, "ingredientId": 3, "ingredient": {"id":   [38;5;135m│[0m
-[38;5;135m│[0m 3, "name": "Foglie di Nebulosa"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50,     [38;5;135m│[0m
-[38;5;135m│[0m "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1336, "restaurantId": 5, "ingredientId": 7,           [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 7, "name": "Carne di Mucca"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},        [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1387, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 17, "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}, "restaurant": {"name":         [38;5;135m│[0m
-[38;5;135m│[0m "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id":   [38;5;135m│[0m
-[38;5;135m│[0m 1388, "restaurantId": 5, "ingredientId": 18, "ingredient": {"id": 18, "name": "Baccacedro"}, "restaurant":       [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 1, "id": 1304, "restaurantId": 20, "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di Balena           [38;5;135m│[0m
-[38;5;135m│[0m spaziale"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},       [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1316, "restaurantId": 20, "ingredientId": 25, "ingredient": {"id": 25, "name": "Farina di  [38;5;135m│[0m
-[38;5;135m│[0m Nettuno"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},        [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1324, "restaurantId": 12, "ingredientId": 35, "ingredient": {"id": 35, "name": "Fibra di   [38;5;135m│[0m
-[38;5;135m│[0m Sintetex"}, "restaurant": {"name": "Bluers"}, "priceForEach": 500, "status": "COMPLETED", "turnId": 6},          [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1329, "restaurantId": 12, "ingredientId": 21, "ingredient": {"id": 21, "name": "Amido di   [38;5;135m│[0m
-[38;5;135m│[0m Stellarion"}, "restaurant": {"name": "Bluers"}, "priceForEach": 400, "status": "COMPLETED", "turnId": 6},        [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1396, "restaurantId": 5, "ingredientId": 3, "ingredient": {"id": 3, "name": "Foglie di     [38;5;135m│[0m
-[38;5;135m│[0m Nebulosa"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED",    [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1417, "restaurantId": 5, "ingredientId": 24, "ingredient": {"id": 24,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Spaghi del Sole"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1421, "restaurantId": 3, "ingredientId": 12, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 12, "name": "Foglie di Mandragora"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 80, "status":  [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1422, "restaurantId": 3, "ingredientId": 10, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 10, "name": "Funghi dell\u2019Etere"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 32,          [38;5;135m│[0m
-[38;5;135m│[0m "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1333, "restaurantId": 5, "ingredientId": 4,           [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}, "restaurant": {"name": "Piadina as a Service          [38;5;135m│[0m
-[38;5;135m│[0m (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1344, "restaurantId":   [38;5;135m│[0m
-[38;5;135m│[0m 5, "ingredientId": 16, "ingredient": {"id": 16, "name": "Sale Temporale"}, "restaurant": {"name": "Piadina as a  [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1389,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 20, "ingredient": {"id": 20, "name": "Biscotti della Galassia"},              [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1392, "restaurantId": 5, "ingredientId": 22, "ingredient": {"id": 22, "name": "Riso di     [38;5;135m│[0m
-[38;5;135m│[0m Cassandra"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1426, "restaurantId": 3, "ingredientId": 3, "ingredient": {"id": 3, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Foglie di Nebulosa"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED",          [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1305, "restaurantId": 20, "ingredientId": 8, "ingredient": {"id": 8, "name": [38;5;135m│[0m
-[38;5;135m│[0m "Carne di Xenodonte"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED",          [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1317, "restaurantId": 20, "ingredientId": 2, "ingredient": {"id": 2, "name": [38;5;135m│[0m
-[38;5;135m│[0m "Alghe Bioluminescenti"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED",       [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1424, "restaurantId": 3, "ingredientId": 2, "ingredient": {"id": 2, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Alghe Bioluminescenti"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED",       [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 3, "id": 1323, "restaurantId": 12, "ingredientId": 40, "ingredient": {"id": 40,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Teste di Idra"}, "restaurant": {"name": "Bluers"}, "priceForEach": 120, "status": "COMPLETED",          [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1397, "restaurantId": 5, "ingredientId": 4, "ingredient": {"id": 4, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Gnocchi del Crepuscolo"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":  [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1407, "restaurantId": 5, "ingredientId": 14, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 14, "name": "Granuli di Nebbia Arcobaleno"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},       [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1337, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 8, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}, "restaurant": {"name": "Piadina as a   [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1341,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 12, "ingredient": {"id": 12, "name": "Foglie di Mandragora"}, "restaurant":   [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 2, "id": 1382, "restaurantId": 5, "ingredientId": 12, "ingredient": {"id": 12, "name": "Foglie di Mandragora"},  [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1386, "restaurantId": 5, "ingredientId": 16, "ingredient": {"id": 16, "name": "Sale        [38;5;135m│[0m
-[38;5;135m│[0m Temporale"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1318, "restaurantId": 20, "ingredientId": 21, "ingredient": {"id": 21,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Amido di Stellarion"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1306, "restaurantId": 20, "ingredientId": 10, "ingredient": {"id": 10,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Funghi dell\u2019Etere"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status":           [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1429, "restaurantId": 3, "ingredientId": 8, "ingredient":       [38;5;135m│[0m
-[38;5;135m│[0m {"id": 8, "name": "Carne di Xenodonte"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status":     [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 3, "id": 1322, "restaurantId": 12, "ingredientId": 13, "ingredient":     [38;5;135m│[0m
-[38;5;135m│[0m {"id": 13, "name": "Pane di Luce"}, "restaurant": {"name": "Bluers"}, "priceForEach": 120, "status":             [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1406, "restaurantId": 5, "ingredientId": 13, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 13, "name": "Pane di Luce"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50,   [38;5;135m│[0m
-[38;5;135m│[0m "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1411, "restaurantId": 5, "ingredientId": 18,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 18, "name": "Baccacedro"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},           [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1433, "restaurantId": 3,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 16, "ingredient": {"id": 16, "name": "Sale Temporale"}, "restaurant": {"name": "Domenicaln"},    [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 28, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1338, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli Abissi"}, "restaurant": {"name": "Piadina as a    [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1340,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 11, "ingredient": {"id": 11, "name": "Polvere di Pulsar"}, "restaurant":      [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 2, "id": 1384, "restaurantId": 5, "ingredientId": 15, "ingredient": {"id": 15, "name": "Funghi Orbitali"},       [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1385, "restaurantId": 5, "ingredientId": 13, "ingredient": {"id": 13, "name": "Pane di     [38;5;135m│[0m
-[38;5;135m│[0m Luce"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",        [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1430, "restaurantId": 3, "ingredientId": 13, "ingredient": {"id": 13,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Pane di Luce"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED",        [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1409, "restaurantId": 5, "ingredientId": 16, "ingredient": {"id": 16,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Sale Temporale"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":  [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1307, "restaurantId": 20, "ingredientId": 7, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 7, "name": "Carne di Mucca"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status":         [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1428, "restaurantId": 3, "ingredientId": 7, "ingredient":       [38;5;135m│[0m
-[38;5;135m│[0m {"id": 7, "name": "Carne di Mucca"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status":         [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1319, "restaurantId": 20, "ingredientId": 28, "ingredient":     [38;5;135m│[0m
-[38;5;135m│[0m {"id": 28, "name": "Lacrime di Unicorno"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status":   [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 3, "id": 1321, "restaurantId": 12, "ingredientId": 19, "ingredient":     [38;5;135m│[0m
-[38;5;135m│[0m {"id": 19, "name": "Carne di Kraken"}, "restaurant": {"name": "Bluers"}, "priceForEach": 120, "status":          [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 5, "id": 1437, "restaurantId": 15, "ingredientId": 11, "ingredient":     [38;5;135m│[0m
-[38;5;135m│[0m {"id": 11, "name": "Polvere di Pulsar"}, "restaurant": {"name": "DeepAiUG"}, "priceForEach": 150, "status":      [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1404, "restaurantId": 5, "ingredientId": 11, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 11, "name": "Polvere di Pulsar"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach":  [38;5;135m│[0m
-[38;5;135m│[0m 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1342, "restaurantId": 5, "ingredientId": 13,      [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 13, "name": "Pane di Luce"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},         [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1346, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 19, "ingredient": {"id": 19, "name": "Carne di Kraken"}, "restaurant": {"name": "Piadina as a    [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1379,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli Abissi"}, "restaurant":        [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 2, "id": 1383, "restaurantId": 5, "ingredientId": 14, "ingredient": {"id": 14, "name": "Granuli di Nebbia        [38;5;135m│[0m
-[38;5;135m│[0m Arcobaleno"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",  [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1435, "restaurantId": 3, "ingredientId": 25, "ingredient": {"id": 25,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Farina di Nettuno"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1357, "restaurantId": 18, "ingredientId": 21, "ingredient": {"id": 21,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Amido di Stellarion"}, "restaurant": {"name": "Starrats"}, "priceForEach": 100, "status": "COMPLETED",  [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1403, "restaurantId": 5, "ingredientId": 10, "ingredient": {"id": 10,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Funghi dell\u2019Etere"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50,    [38;5;135m│[0m
-[38;5;135m│[0m "status": "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1361, "restaurantId": 7, "ingredientId": 2,           [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}, "restaurant": {"name": "Siesta dopo pizza"},           [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 80, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1395, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 2, "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}, "restaurant": {"name": "Piadina as  [38;5;135m│[0m
-[38;5;135m│[0m a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1308,         [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 20, "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli Abissi"}, "restaurant":       [38;5;135m│[0m
-[38;5;135m│[0m {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1345,     [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 14, "ingredient": {"id": 14, "name": "Granuli di Nebbia Arcobaleno"},         [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1347, "restaurantId": 5, "ingredientId": 21, "ingredient": {"id": 21, "name": "Amido di    [38;5;135m│[0m
-[38;5;135m│[0m Stellarion"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",  [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1372, "restaurantId": 5, "ingredientId": 2, "ingredient": {"id": 2, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Alghe Bioluminescenti"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":   [38;5;135m│[0m
-[38;5;135m│[0m "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1374, "restaurantId": 5, "ingredientId": 4, "ingredient":       [38;5;135m│[0m
-[38;5;135m│[0m {"id": 4, "name": "Gnocchi del Crepuscolo"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},              [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 5, "id": 1440, "restaurantId": 15,         [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}, "restaurant": {"name":           [38;5;135m│[0m
-[38;5;135m│[0m "DeepAiUG"}, "priceForEach": 150, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1399,               [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}, "restaurant": [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 1, "id": 1364, "restaurantId": 7, "ingredientId": 8, "ingredient": {"id": 8, "name": "Carne di Xenodonte"},      [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},            [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1309, "restaurantId": 20, "ingredientId": 11, "ingredient": {"id": 11, "name": "Polvere di [38;5;135m│[0m
-[38;5;135m│[0m Pulsar"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},         [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1369, "restaurantId": 7, "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli    [38;5;135m│[0m
-[38;5;135m│[0m Abissi"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1358, "restaurantId": 18, "ingredientId": 27, "ingredient": {"id": 27, "name": "Shard di   [38;5;135m│[0m
-[38;5;135m│[0m Materia Oscura"}, "restaurant": {"name": "Starrats"}, "priceForEach": 150, "status": "COMPLETED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1394, "restaurantId": 5, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di     [38;5;135m│[0m
-[38;5;135m│[0m Gravit\u00e0"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":             [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1418, "restaurantId": 3, "ingredientId": 5, "ingredient":       [38;5;135m│[0m
-[38;5;135m│[0m {"id": 5, "name": "Essenza di Tachioni"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 80, "status":    [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1343, "restaurantId": 5, "ingredientId": 15, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 15, "name": "Funghi Orbitali"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach":    [38;5;135m│[0m
-[38;5;135m│[0m 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1348, "restaurantId": 5, "ingredientId": 17,      [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}, "restaurant": {"name": "Piadina as a Service       [38;5;135m│[0m
-[38;5;135m│[0m (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1380, "restaurantId":   [38;5;135m│[0m
-[38;5;135m│[0m 5, "ingredientId": 10, "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}, "restaurant": {"name":        [38;5;135m│[0m
-[38;5;135m│[0m "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id":   [38;5;135m│[0m
-[38;5;135m│[0m 1381, "restaurantId": 5, "ingredientId": 11, "ingredient": {"id": 11, "name": "Polvere di Pulsar"},              [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1362, "restaurantId": 7, "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di      [38;5;135m│[0m
-[38;5;135m│[0m Balena spaziale"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED",       [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1310, "restaurantId": 20, "ingredientId": 12, "ingredient": {"id": 12,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Foglie di Mandragora"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status":             [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1359, "restaurantId": 18, "ingredientId": 2, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 2, "name": "Alghe Bioluminescenti"}, "restaurant": {"name": "Starrats"}, "priceForEach": 100, "status":   [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1419, "restaurantId": 3, "ingredientId": 11, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 11, "name": "Polvere di Pulsar"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 80, "status":     [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1398, "restaurantId": 5, "ingredientId": 5, "ingredient":       [38;5;135m│[0m
-[38;5;135m│[0m {"id": 5, "name": "Essenza di Tachioni"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": [38;5;135m│[0m
-[38;5;135m│[0m 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1410, "restaurantId": 5, "ingredientId": 17,      [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}, "restaurant": {"name": "Piadina as a Service       [38;5;135m│[0m
-[38;5;135m│[0m (PaaS)"}, "priceForEach": 50, "status": "INCOMPLETE", "turnId": 6}, {"quantity": 2, "id": 1334, "restaurantId":  [38;5;135m│[0m
-[38;5;135m│[0m 5, "ingredientId": 5, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}, "restaurant": {"name": "Piadina as [38;5;135m│[0m
-[38;5;135m│[0m a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1349,         [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 23, "ingredient": {"id": 23, "name": "Essenza di Speziaria"}, "restaurant":   [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 2, "id": 1371, "restaurantId": 5, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"},  [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1377, "restaurantId": 5, "ingredientId": 7, "ingredient": {"id": 7, "name": "Carne di      [38;5;135m│[0m
-[38;5;135m│[0m Mucca"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED",       [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1366, "restaurantId": 7, "ingredientId": 3, "ingredient": {"id": 3, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Foglie di Nebulosa"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1311, "restaurantId": 20, "ingredientId": 24, "ingredient": {"id": 24,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Spaghi del Sole"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED",     [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1328, "restaurantId": 12, "ingredientId": 8, "ingredient": {"id": 8, "name": [38;5;135m│[0m
-[38;5;135m│[0m "Carne di Xenodonte"}, "restaurant": {"name": "Bluers"}, "priceForEach": 420, "status": "COMPLETED", "turnId":   [38;5;135m│[0m
-[38;5;135m│[0m 6}, {"quantity": 5, "id": 1438, "restaurantId": 15, "ingredientId": 2, "ingredient": {"id": 2, "name": "Alghe    [38;5;135m│[0m
-[38;5;135m│[0m Bioluminescenti"}, "restaurant": {"name": "DeepAiUG"}, "priceForEach": 150, "status": "COMPLETED", "turnId": 6}, [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1354, "restaurantId": 18, "ingredientId": 4, "ingredient": {"id": 4, "name": "Gnocchi del  [38;5;135m│[0m
-[38;5;135m│[0m Crepuscolo"}, "restaurant": {"name": "Starrats"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},       [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1425, "restaurantId": 3, "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli    [38;5;135m│[0m
-[38;5;135m│[0m Abissi"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 32, "status": "COMPLETED", "turnId": 6},         [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1370, "restaurantId": 7, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di     [38;5;135m│[0m
-[38;5;135m│[0m Gravit\u00e0"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED",          [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1413, "restaurantId": 5, "ingredientId": 22, "ingredient": {"id": 22,        [38;5;135m│[0m
-[38;5;135m│[0m "name": "Riso di Cassandra"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50,         [38;5;135m│[0m
-[38;5;135m│[0m "status": "INCOMPLETE", "turnId": 6}, {"quantity": 2, "id": 1415, "restaurantId": 5, "ingredientId": 20,         [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 20, "name": "Biscotti della Galassia"}, "restaurant": {"name": "Piadina as a Service        [38;5;135m│[0m
-[38;5;135m│[0m (PaaS)"}, "priceForEach": 50, "status": "INCOMPLETE", "turnId": 6}, {"quantity": 1, "id": 1436, "restaurantId":  [38;5;135m│[0m
-[38;5;135m│[0m 3, "ingredientId": 26, "ingredient": {"id": 26, "name": "Plasma Vitale"}, "restaurant": {"name": "Domenicaln"},  [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 28, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1339, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 10, "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}, "restaurant": {"name": "Piadina  [38;5;135m│[0m
-[38;5;135m│[0m as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1350,      [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 18, "ingredient": {"id": 18, "name": "Baccacedro"}, "restaurant": {"name":    [38;5;135m│[0m
-[38;5;135m│[0m "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id":   [38;5;135m│[0m
-[38;5;135m│[0m 1375, "restaurantId": 5, "ingredientId": 5, "ingredient": {"id": 5, "name": "Essenza di Tachioni"},              [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1376, "restaurantId": 5, "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di      [38;5;135m│[0m
-[38;5;135m│[0m Balena spaziale"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":          [38;5;135m│[0m
-[38;5;135m│[0m "CANCELLED", "turnId": 6}, {"quantity": 3, "id": 1320, "restaurantId": 12, "ingredientId": 6, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 6, "name": "Carne di Balena spaziale"}, "restaurant": {"name": "Bluers"}, "priceForEach": 120, "status":  [38;5;135m│[0m
-[38;5;135m│[0m "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1367, "restaurantId": 7, "ingredientId": 10, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 10, "name": "Funghi dell\u2019Etere"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80,   [38;5;135m│[0m
-[38;5;135m│[0m "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1401, "restaurantId": 5, "ingredientId": 8,           [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 8, "name": "Carne di Xenodonte"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 1, "id": 1427, "restaurantId": 3,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 4, "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}, "restaurant": {"name":             [38;5;135m│[0m
-[38;5;135m│[0m "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1400,              [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 7, "ingredient": {"id": 7, "name": "Carne di Mucca"}, "restaurant": {"name":  [38;5;135m│[0m
-[38;5;135m│[0m "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity": 1, "id":   [38;5;135m│[0m
-[38;5;135m│[0m 1360, "restaurantId": 18, "ingredientId": 28, "ingredient": {"id": 28, "name": "Lacrime di Unicorno"},           [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Starrats"}, "priceForEach": 100, "status": "COMPLETED", "turnId": 6}, {"quantity": 5,    [38;5;135m│[0m
-[38;5;135m│[0m "id": 1439, "restaurantId": 15, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"},    [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "DeepAiUG"}, "priceForEach": 150, "status": "COMPLETED", "turnId": 6}, {"quantity": 1,    [38;5;135m│[0m
-[38;5;135m│[0m "id": 1312, "restaurantId": 20, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"},    [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6}, {"quantity": 1,   [38;5;135m│[0m
-[38;5;135m│[0m "id": 1356, "restaurantId": 18, "ingredientId": 5, "ingredient": {"id": 5, "name": "Essenza di Tachioni"},       [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Starrats"}, "priceForEach": 120, "status": "COMPLETED", "turnId": 6}, {"quantity": 1,    [38;5;135m│[0m
-[38;5;135m│[0m "id": 1365, "restaurantId": 7, "ingredientId": 5, "ingredient": {"id": 5, "name": "Essenza di Tachioni"},        [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},            [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1432, "restaurantId": 3, "ingredientId": 15, "ingredient": {"id": 15, "name": "Funghi      [38;5;135m│[0m
-[38;5;135m│[0m Orbitali"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED", "turnId": 6},       [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1331, "restaurantId": 5, "ingredientId": 2, "ingredient": {"id": 2, "name": "Alghe         [38;5;135m│[0m
-[38;5;135m│[0m Bioluminescenti"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":          [38;5;135m│[0m
-[38;5;135m│[0m "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1351, "restaurantId": 5, "ingredientId": 22, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 22, "name": "Riso di Cassandra"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach":  [38;5;135m│[0m
-[38;5;135m│[0m 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1373, "restaurantId": 5, "ingredientId": 3,       [38;5;135m│[0m
-[38;5;135m│[0m "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1390, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 19, "ingredient": {"id": 19, "name": "Carne di Kraken"}, "restaurant": {"name": "Piadina as a    [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1405,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 12, "ingredient": {"id": 12, "name": "Foglie di Mandragora"}, "restaurant":   [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 1, "id": 1368, "restaurantId": 7, "ingredientId": 4, "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"},  [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},            [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1431, "restaurantId": 3, "ingredientId": 14, "ingredient": {"id": 14, "name": "Granuli di  [38;5;135m│[0m
-[38;5;135m│[0m Nebbia Arcobaleno"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED", "turnId":  [38;5;135m│[0m
-[38;5;135m│[0m 6}, {"quantity": 2, "id": 1412, "restaurantId": 5, "ingredientId": 19, "ingredient": {"id": 19, "name": "Carne   [38;5;135m│[0m
-[38;5;135m│[0m di Kraken"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1326, "restaurantId": 12, "ingredientId": 9, "ingredient": {"id": 9, "name": [38;5;135m│[0m
-[38;5;135m│[0m "Pane degli Abissi"}, "restaurant": {"name": "Bluers"}, "priceForEach": 440, "status": "COMPLETED", "turnId":    [38;5;135m│[0m
-[38;5;135m│[0m 6}, {"quantity": 2, "id": 1353, "restaurantId": 18, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici   [38;5;135m│[0m
-[38;5;135m│[0m di Gravit\u00e0"}, "restaurant": {"name": "Starrats"}, "priceForEach": 120, "status": "COMPLETED", "turnId": 6}, [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1423, "restaurantId": 3, "ingredientId": 1, "ingredient": {"id": 1, "name": "Radici di     [38;5;135m│[0m
-[38;5;135m│[0m Gravit\u00e0"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED", "turnId": 6},   [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1313, "restaurantId": 20, "ingredientId": 26, "ingredient": {"id": 26, "name": "Plasma     [38;5;135m│[0m
-[38;5;135m│[0m Vitale"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},         [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1335, "restaurantId": 5, "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di      [38;5;135m│[0m
-[38;5;135m│[0m Balena spaziale"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":          [38;5;135m│[0m
-[38;5;135m│[0m "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1352, "restaurantId": 5, "ingredientId": 20, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 20, "name": "Biscotti della Galassia"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},            [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1378, "restaurantId": 5,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 8, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}, "restaurant": {"name": "Piadina as a   [38;5;135m│[0m
-[38;5;135m│[0m Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1391,           [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 21, "ingredient": {"id": 21, "name": "Amido di Stellarion"}, "restaurant":    [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 2, "id": 1414, "restaurantId": 5, "ingredientId": 21, "ingredient": {"id": 21, "name": "Amido di Stellarion"},   [38;5;135m│[0m
-[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6},  [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1355, "restaurantId": 18, "ingredientId": 3, "ingredient": {"id": 3, "name": "Foglie di    [38;5;135m│[0m
-[38;5;135m│[0m Nebulosa"}, "restaurant": {"name": "Starrats"}, "priceForEach": 70, "status": "COMPLETED", "turnId": 6},         [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1434, "restaurantId": 3, "ingredientId": 24, "ingredient": {"id": 24, "name": "Spaghi del  [38;5;135m│[0m
-[38;5;135m│[0m Sole"}, "restaurant": {"name": "Domenicaln"}, "priceForEach": 28, "status": "COMPLETED", "turnId": 6},           [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1363, "restaurantId": 7, "ingredientId": 7, "ingredient": {"id": 7, "name": "Carne di      [38;5;135m│[0m
-[38;5;135m│[0m Mucca"}, "restaurant": {"name": "Siesta dopo pizza"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6},   [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1314, "restaurantId": 20, "ingredientId": 5, "ingredient": {"id": 5, "name": "Essenza di   [38;5;135m│[0m
-[38;5;135m│[0m Tachioni"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},       [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1408, "restaurantId": 5, "ingredientId": 15, "ingredient": {"id": 15, "name": "Funghi      [38;5;135m│[0m
-[38;5;135m│[0m Orbitali"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "INCOMPLETE",   [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 1, "id": 1327, "restaurantId": 12, "ingredientId": 32, "ingredient": {"id": 32,       [38;5;135m│[0m
-[38;5;135m│[0m "name": "Uova di Fenice"}, "restaurant": {"name": "Bluers"}, "priceForEach": 460, "status": "COMPLETED",         [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}, {"quantity": 2, "id": 1330, "restaurantId": 5, "ingredientId": 1, "ingredient": {"id": 1, "name":  [38;5;135m│[0m
-[38;5;135m│[0m "Radici di Gravit\u00e0"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status":  [38;5;135m│[0m
-[38;5;135m│[0m "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1393, "restaurantId": 5, "ingredientId": 23, "ingredient":      [38;5;135m│[0m
-[38;5;135m│[0m {"id": 23, "name": "Essenza di Speziaria"}, "restaurant": {"name": "Piadina as a Service (PaaS)"},               [38;5;135m│[0m
-[38;5;135m│[0m "priceForEach": 50, "status": "CANCELLED", "turnId": 6}, {"quantity": 2, "id": 1420, "restaurantId": 3,          [38;5;135m│[0m
-[38;5;135m│[0m "ingredientId": 6, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}, "restaurant": {"name":           [38;5;135m│[0m
-[38;5;135m│[0m "Domenicaln"}, "priceForEach": 80, "status": "COMPLETED", "turnId": 6}, {"quantity": 2, "id": 1402,              [38;5;135m│[0m
-[38;5;135m│[0m "restaurantId": 5, "ingredientId": 9, "ingredient": {"id": 9, "name": "Pane degli Abissi"}, "restaurant":        [38;5;135m│[0m
-[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "COMPLETED", "turnId": 6}, {"quantity":   [38;5;135m│[0m
-[38;5;135m│[0m 1, "id": 1315, "restaurantId": 20, "ingredientId": 27, "ingredient": {"id": 27, "name": "Shard di Materia        [38;5;135m│[0m
-[38;5;135m│[0m Oscura"}, "restaurant": {"name": "sphacketti"}, "priceForEach": 51, "status": "COMPLETED", "turnId": 6},         [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 1, "id": 1325, "restaurantId": 12, "ingredientId": 36, "ingredient": {"id": 36, "name": "Carne di   [38;5;135m│[0m
-[38;5;135m│[0m Drago"}, "restaurant": {"name": "Bluers"}, "priceForEach": 480, "status": "COMPLETED", "turnId": 6},             [38;5;135m│[0m
-[38;5;135m│[0m {"quantity": 2, "id": 1416, "restaurantId": 5, "ingredientId": 23, "ingredient": {"id": 23, "name": "Essenza di  [38;5;135m│[0m
-[38;5;135m│[0m Speziaria"}, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "priceForEach": 50, "status": "INCOMPLETE",  [38;5;135m│[0m
-[38;5;135m│[0m "turnId": 6}]}                                                                                                   [38;5;135m│[0m
-[38;5;135m╰─[0m[38;5;135m args: {'turn_id': 6} [0m[38;5;135m──────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m─╯[0m
-[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m17:45:03[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m2[0m[38;5;135m --- [0m
+[38;5;135m╭─[0m[38;5;135m──────────────────────────────────────────────────────[0m[38;5;135m TOOL GET_PAST_BIDS RESULT [0m[38;5;135m──────────────────────────────────────────────────────[0m[38;5;135m─╮[0m
+[38;5;135m│[0m {"turn_id": 6, "bids": [{"priceForEach": 50, "status": "CANCELLED", "ingredientId": 3, "quantity": 2, "id": 1332, "turnId": 6,          [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}},       [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 7, "quantity": 2, "id": 1336, "turnId": 6, "restaurantId": 5, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 7, "name": "Carne di Mucca"}}, {"priceForEach": 50, "status":             [38;5;135m│[0m
+[38;5;135m│[0m "CANCELLED", "ingredientId": 17, "quantity": 2, "id": 1387, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a        [38;5;135m│[0m
+[38;5;135m│[0m Service (PaaS)"}, "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}}, {"priceForEach": 50, "status": "CANCELLED",            [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 18, "quantity": 2, "id": 1388, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 18, "name": "Baccacedro"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 6, "quantity": 1, "id":    [38;5;135m│[0m
+[38;5;135m│[0m 1304, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 6, "name": "Carne di Balena           [38;5;135m│[0m
+[38;5;135m│[0m spaziale"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 25, "quantity": 1, "id": 1316, "turnId": 6, "restaurantId":    [38;5;135m│[0m
+[38;5;135m│[0m 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 25, "name": "Farina di Nettuno"}}, {"priceForEach": 500, "status":       [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 35, "quantity": 1, "id": 1324, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"},          [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 35, "name": "Fibra di Sintetex"}}, {"priceForEach": 400, "status": "COMPLETED", "ingredientId": 21, "quantity": 1, [38;5;135m│[0m
+[38;5;135m│[0m "id": 1329, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"}, "ingredient": {"id": 21, "name": "Amido di               [38;5;135m│[0m
+[38;5;135m│[0m Stellarion"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 3, "quantity": 2, "id": 1396, "turnId": 6, "restaurantId":   [38;5;135m│[0m
+[38;5;135m│[0m 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}}, {"priceForEach": 50,  [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 24, "quantity": 2, "id": 1417, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 24, "name": "Spaghi del Sole"}}, {"priceForEach": 80, "status": "COMPLETED",                [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 12, "quantity": 2, "id": 1421, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient":      [38;5;135m│[0m
+[38;5;135m│[0m {"id": 12, "name": "Foglie di Mandragora"}}, {"priceForEach": 32, "status": "COMPLETED", "ingredientId": 10, "quantity": 1, "id": 1422, [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}},      [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 4, "quantity": 2, "id": 1333, "turnId": 6, "restaurantId": 5, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}}, {"priceForEach": 50, "status":     [38;5;135m│[0m
+[38;5;135m│[0m "CANCELLED", "ingredientId": 16, "quantity": 2, "id": 1344, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a        [38;5;135m│[0m
+[38;5;135m│[0m Service (PaaS)"}, "ingredient": {"id": 16, "name": "Sale Temporale"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 20,  [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1389, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 20, "name": "Biscotti della Galassia"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 22, "quantity": 2, "id": 1392,     [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 22, "name": "Riso di        [38;5;135m│[0m
+[38;5;135m│[0m Cassandra"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 3, "quantity": 1, "id": 1426, "turnId": 6, "restaurantId": 3, [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}}, {"priceForEach": 51, "status":            [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 8, "quantity": 1, "id": 1305, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"},       [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 8, "name": "Carne di Xenodonte"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 2, "quantity": 1,   [38;5;135m│[0m
+[38;5;135m│[0m "id": 1317, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 2, "name": "Alghe               [38;5;135m│[0m
+[38;5;135m│[0m Bioluminescenti"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 2, "quantity": 1, "id": 1424, "turnId": 6,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach":    [38;5;135m│[0m
+[38;5;135m│[0m 120, "status": "COMPLETED", "ingredientId": 40, "quantity": 3, "id": 1323, "turnId": 6, "restaurantId": 12, "restaurant": {"name":      [38;5;135m│[0m
+[38;5;135m│[0m "Bluers"}, "ingredient": {"id": 40, "name": "Teste di Idra"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 4,           [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1397, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 4, "name": "Gnocchi del Crepuscolo"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 14, "quantity": 2, "id": 1407,       [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 14, "name": "Granuli di     [38;5;135m│[0m
+[38;5;135m│[0m Nebbia Arcobaleno"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 8, "quantity": 2, "id": 1337, "turnId": 6,            [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}},       [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 12, "quantity": 2, "id": 1341, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 12, "name": "Foglie di Mandragora"}}, {"priceForEach": 50,  [38;5;135m│[0m
+[38;5;135m│[0m "status": "CANCELLED", "ingredientId": 12, "quantity": 2, "id": 1382, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 12, "name": "Foglie di Mandragora"}}, {"priceForEach": 50, "status": "CANCELLED",           [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 16, "quantity": 2, "id": 1386, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 16, "name": "Sale Temporale"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 21, "quantity": 1,     [38;5;135m│[0m
+[38;5;135m│[0m "id": 1318, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 21, "name": "Amido di           [38;5;135m│[0m
+[38;5;135m│[0m Stellarion"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 10, "quantity": 1, "id": 1306, "turnId": 6, "restaurantId":  [38;5;135m│[0m
+[38;5;135m│[0m 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}}, {"priceForEach": 28, "status":   [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 8, "quantity": 1, "id": 1429, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"},        [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 8, "name": "Carne di Xenodonte"}}, {"priceForEach": 120, "status": "COMPLETED", "ingredientId": 13, "quantity": 3, [38;5;135m│[0m
+[38;5;135m│[0m "id": 1322, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"}, "ingredient": {"id": 13, "name": "Pane di Luce"}},       [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 13, "quantity": 2, "id": 1406, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 13, "name": "Pane di Luce"}}, {"priceForEach": 50,          [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 18, "quantity": 2, "id": 1411, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 18, "name": "Baccacedro"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 16, [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 1, "id": 1433, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 16, "name": "Sale [38;5;135m│[0m
+[38;5;135m│[0m Temporale"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 9, "quantity": 2, "id": 1338, "turnId": 6, "restaurantId": 5, [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 9, "name": "Pane degli Abissi"}}, {"priceForEach": 50,      [38;5;135m│[0m
+[38;5;135m│[0m "status": "CANCELLED", "ingredientId": 11, "quantity": 2, "id": 1340, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 11, "name": "Polvere di Pulsar"}}, {"priceForEach": 50, "status": "CANCELLED",              [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 15, "quantity": 2, "id": 1384, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 15, "name": "Funghi Orbitali"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 13, "quantity": 2,    [38;5;135m│[0m
+[38;5;135m│[0m "id": 1385, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 13, "name":     [38;5;135m│[0m
+[38;5;135m│[0m "Pane di Luce"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 13, "quantity": 1, "id": 1430, "turnId": 6,               [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 13, "name": "Pane di Luce"}}, {"priceForEach": 50,        [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 16, "quantity": 2, "id": 1409, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 16, "name": "Sale Temporale"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": [38;5;135m│[0m
+[38;5;135m│[0m 7, "quantity": 1, "id": 1307, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 7, "name":    [38;5;135m│[0m
+[38;5;135m│[0m "Carne di Mucca"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 7, "quantity": 1, "id": 1428, "turnId": 6,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 7, "name": "Carne di Mucca"}}, {"priceForEach": 51,       [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 28, "quantity": 1, "id": 1319, "turnId": 6, "restaurantId": 20, "restaurant": {"name":           [38;5;135m│[0m
+[38;5;135m│[0m "sphacketti"}, "ingredient": {"id": 28, "name": "Lacrime di Unicorno"}}, {"priceForEach": 120, "status": "COMPLETED", "ingredientId":   [38;5;135m│[0m
+[38;5;135m│[0m 19, "quantity": 3, "id": 1321, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"}, "ingredient": {"id": 19, "name":      [38;5;135m│[0m
+[38;5;135m│[0m "Carne di Kraken"}}, {"priceForEach": 150, "status": "COMPLETED", "ingredientId": 11, "quantity": 5, "id": 1437, "turnId": 6,           [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 15, "restaurant": {"name": "DeepAiUG"}, "ingredient": {"id": 11, "name": "Polvere di Pulsar"}}, {"priceForEach": 50,    [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 11, "quantity": 2, "id": 1404, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 11, "name": "Polvere di Pulsar"}}, {"priceForEach": 50, "status": "CANCELLED",              [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 13, "quantity": 2, "id": 1342, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 13, "name": "Pane di Luce"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 19, "quantity": 2, "id": [38;5;135m│[0m
+[38;5;135m│[0m 1346, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 19, "name": "Carne di [38;5;135m│[0m
+[38;5;135m│[0m Kraken"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 9, "quantity": 2, "id": 1379, "turnId": 6, "restaurantId": 5,    [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 9, "name": "Pane degli Abissi"}}, {"priceForEach": 50,      [38;5;135m│[0m
+[38;5;135m│[0m "status": "CANCELLED", "ingredientId": 14, "quantity": 2, "id": 1383, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 14, "name": "Granuli di Nebbia Arcobaleno"}}, {"priceForEach": 28, "status": "COMPLETED",   [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 25, "quantity": 1, "id": 1435, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient":      [38;5;135m│[0m
+[38;5;135m│[0m {"id": 25, "name": "Farina di Nettuno"}}, {"priceForEach": 100, "status": "COMPLETED", "ingredientId": 21, "quantity": 1, "id": 1357,   [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 21, "name": "Amido di Stellarion"}},          [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 10, "quantity": 2, "id": 1403, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}}, {"priceForEach":    [38;5;135m│[0m
+[38;5;135m│[0m 80, "status": "COMPLETED", "ingredientId": 2, "quantity": 1, "id": 1361, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta [38;5;135m│[0m
+[38;5;135m│[0m dopo pizza"}, "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 2, [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1395, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 9, "quantity": 1, "id": 1308,         [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 9, "name": "Pane degli Abissi"}},           [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 14, "quantity": 2, "id": 1345, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 14, "name": "Granuli di Nebbia Arcobaleno"}},               [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 21, "quantity": 2, "id": 1347, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 21, "name": "Amido di Stellarion"}}, {"priceForEach": 50,   [38;5;135m│[0m
+[38;5;135m│[0m "status": "CANCELLED", "ingredientId": 2, "quantity": 2, "id": 1372, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as [38;5;135m│[0m
+[38;5;135m│[0m a Service (PaaS)"}, "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach": 50, "status": "CANCELLED",              [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 4, "quantity": 2, "id": 1374, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}}, {"priceForEach": 150, "status": "COMPLETED", "ingredientId": 6, "quantity": [38;5;135m│[0m
+[38;5;135m│[0m 5, "id": 1440, "turnId": 6, "restaurantId": 15, "restaurant": {"name": "DeepAiUG"}, "ingredient": {"id": 6, "name": "Carne di Balena    [38;5;135m│[0m
+[38;5;135m│[0m spaziale"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 6, "quantity": 2, "id": 1399, "turnId": 6, "restaurantId": 5,  [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}}, {"priceForEach":   [38;5;135m│[0m
+[38;5;135m│[0m 80, "status": "COMPLETED", "ingredientId": 8, "quantity": 1, "id": 1364, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta [38;5;135m│[0m
+[38;5;135m│[0m dopo pizza"}, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 11,   [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 1, "id": 1309, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 11, "name":      [38;5;135m│[0m
+[38;5;135m│[0m "Polvere di Pulsar"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 9, "quantity": 1, "id": 1369, "turnId": 6,           [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 9, "name": "Pane degli Abissi"}}, {"priceForEach": [38;5;135m│[0m
+[38;5;135m│[0m 150, "status": "COMPLETED", "ingredientId": 27, "quantity": 1, "id": 1358, "turnId": 6, "restaurantId": 18, "restaurant": {"name":      [38;5;135m│[0m
+[38;5;135m│[0m "Starrats"}, "ingredient": {"id": 27, "name": "Shard di Materia Oscura"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId":  [38;5;135m│[0m
+[38;5;135m│[0m 1, "quantity": 2, "id": 1394, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient":      [38;5;135m│[0m
+[38;5;135m│[0m {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 5, "quantity": 2, "id": 1418, [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}},          [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 15, "quantity": 2, "id": 1343, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 15, "name": "Funghi Orbitali"}}, {"priceForEach": 50,       [38;5;135m│[0m
+[38;5;135m│[0m "status": "CANCELLED", "ingredientId": 17, "quantity": 2, "id": 1348, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}}, {"priceForEach": 50, "status": "CANCELLED",       [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 10, "quantity": 2, "id": 1380, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 11,            [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1381, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 11, "name": "Polvere di Pulsar"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 6, "quantity": 1, "id": 1362, "turnId":  [38;5;135m│[0m
+[38;5;135m│[0m 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}},        [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 12, "quantity": 1, "id": 1310, "turnId": 6, "restaurantId": 20,             [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 12, "name": "Foglie di Mandragora"}}, {"priceForEach": 100, "status":        [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 2, "quantity": 2, "id": 1359, "turnId": 6, "restaurantId": 18, "restaurant": {"name": "Starrats"},         [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 11, "quantity":  [38;5;135m│[0m
+[38;5;135m│[0m 2, "id": 1419, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 11, "name": "Polvere di       [38;5;135m│[0m
+[38;5;135m│[0m Pulsar"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 5, "quantity": 2, "id": 1398, "turnId": 6, "restaurantId": 5,    [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}}, {"priceForEach": 50,    [38;5;135m│[0m
+[38;5;135m│[0m "status": "INCOMPLETE", "ingredientId": 17, "quantity": 2, "id": 1410, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina  [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 17, "name": "Shard di Prisma Stellare"}}, {"priceForEach": 50, "status": "CANCELLED",       [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 5, "quantity": 2, "id": 1334, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 5, "name": "Essenza di Tachioni"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 23, "quantity": 2, [38;5;135m│[0m
+[38;5;135m│[0m "id": 1349, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 23, "name":     [38;5;135m│[0m
+[38;5;135m│[0m "Essenza di Speziaria"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 1, "quantity": 2, "id": 1371, "turnId": 6,        [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}},   [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 7, "quantity": 2, "id": 1377, "turnId": 6, "restaurantId": 5, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 7, "name": "Carne di Mucca"}}, {"priceForEach": 80, "status":             [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 3, "quantity": 1, "id": 1366, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 24, "quantity": 1,  [38;5;135m│[0m
+[38;5;135m│[0m "id": 1311, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 24, "name": "Spaghi del         [38;5;135m│[0m
+[38;5;135m│[0m Sole"}}, {"priceForEach": 420, "status": "COMPLETED", "ingredientId": 8, "quantity": 1, "id": 1328, "turnId": 6, "restaurantId": 12,    [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Bluers"}, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}}, {"priceForEach": 150, "status": "COMPLETED",  [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 2, "quantity": 5, "id": 1438, "turnId": 6, "restaurantId": 15, "restaurant": {"name": "DeepAiUG"}, "ingredient": {"id": [38;5;135m│[0m
+[38;5;135m│[0m 2, "name": "Alghe Bioluminescenti"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 4, "quantity": 1, "id": 1354,         [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}},        [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 32, "status": "COMPLETED", "ingredientId": 9, "quantity": 1, "id": 1425, "turnId": 6, "restaurantId": 3, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Domenicaln"}, "ingredient": {"id": 9, "name": "Pane degli Abissi"}}, {"priceForEach": 80, "status": "COMPLETED",              [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 1, "quantity": 1, "id": 1370, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"},              [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": 50, "status": "INCOMPLETE", "ingredientId": 22,            [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1413, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 22, "name": "Riso di Cassandra"}}, {"priceForEach": 50, "status": "INCOMPLETE", "ingredientId": 20, "quantity": 2, "id": 1415,          [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 20, "name": "Biscotti della [38;5;135m│[0m
+[38;5;135m│[0m Galassia"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 26, "quantity": 1, "id": 1436, "turnId": 6, "restaurantId": 3, [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 26, "name": "Plasma Vitale"}}, {"priceForEach": 50, "status": "CANCELLED",   [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 10, "quantity": 2, "id": 1339, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 10, "name": "Funghi dell\u2019Etere"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 18,            [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1350, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 18, "name": "Baccacedro"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 5, "quantity": 2, "id": 1375, "turnId": 6,      [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}},      [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 6, "quantity": 2, "id": 1376, "turnId": 6, "restaurantId": 5, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}}, {"priceForEach": 120, "status":  [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 6, "quantity": 3, "id": 1320, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"},           [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 10,           [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 1, "id": 1367, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 10,        [38;5;135m│[0m
+[38;5;135m│[0m "name": "Funghi dell\u2019Etere"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 8, "quantity": 2, "id": 1401, "turnId": [38;5;135m│[0m
+[38;5;135m│[0m 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}},    [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 4, "quantity": 1, "id": 1427, "turnId": 6, "restaurantId": 3, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Domenicaln"}, "ingredient": {"id": 4, "name": "Gnocchi del Crepuscolo"}}, {"priceForEach": 50, "status": "COMPLETED",         [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 7, "quantity": 2, "id": 1400, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 7, "name": "Carne di Mucca"}}, {"priceForEach": 100, "status": "COMPLETED", "ingredientId": 28, "quantity": 1,     [38;5;135m│[0m
+[38;5;135m│[0m "id": 1360, "turnId": 6, "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 28, "name": "Lacrime di           [38;5;135m│[0m
+[38;5;135m│[0m Unicorno"}}, {"priceForEach": 150, "status": "COMPLETED", "ingredientId": 1, "quantity": 5, "id": 1439, "turnId": 6, "restaurantId":    [38;5;135m│[0m
+[38;5;135m│[0m 15, "restaurant": {"name": "DeepAiUG"}, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": 51, "status":      [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 1, "quantity": 1, "id": 1312, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"},       [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": 120, "status": "COMPLETED", "ingredientId": 5, "quantity": [38;5;135m│[0m
+[38;5;135m│[0m 1, "id": 1356, "turnId": 6, "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 5, "name": "Essenza di         [38;5;135m│[0m
+[38;5;135m│[0m Tachioni"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 5, "quantity": 1, "id": 1365, "turnId": 6, "restaurantId": 7,  [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}}, {"priceForEach": 28, "status":    [38;5;135m│[0m
+[38;5;135m│[0m "COMPLETED", "ingredientId": 15, "quantity": 1, "id": 1432, "turnId": 6, "restaurantId": 3, "restaurant": {"name": "Domenicaln"},       [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 15, "name": "Funghi Orbitali"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 2, "quantity": 2,     [38;5;135m│[0m
+[38;5;135m│[0m "id": 1331, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 2, "name":      [38;5;135m│[0m
+[38;5;135m│[0m "Alghe Bioluminescenti"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 22, "quantity": 2, "id": 1351, "turnId": 6,      [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 22, "name": "Riso di Cassandra"}},       [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 3, "quantity": 2, "id": 1373, "turnId": 6, "restaurantId": 5, "restaurant": [38;5;135m│[0m
+[38;5;135m│[0m {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}}, {"priceForEach": 50, "status":         [38;5;135m│[0m
+[38;5;135m│[0m "CANCELLED", "ingredientId": 19, "quantity": 2, "id": 1390, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a        [38;5;135m│[0m
+[38;5;135m│[0m Service (PaaS)"}, "ingredient": {"id": 19, "name": "Carne di Kraken"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 12, [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 2, "id": 1405, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 12, "name": "Foglie di Mandragora"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 4, "quantity": 1, "id": 1368,         [38;5;135m│[0m
+[38;5;135m│[0m "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 4, "name": "Gnocchi del               [38;5;135m│[0m
+[38;5;135m│[0m Crepuscolo"}}, {"priceForEach": 28, "status": "COMPLETED", "ingredientId": 14, "quantity": 1, "id": 1431, "turnId": 6, "restaurantId":  [38;5;135m│[0m
+[38;5;135m│[0m 3, "restaurant": {"name": "Domenicaln"}, "ingredient": {"id": 14, "name": "Granuli di Nebbia Arcobaleno"}}, {"priceForEach": 50,        [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 19, "quantity": 2, "id": 1412, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina   [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 19, "name": "Carne di Kraken"}}, {"priceForEach": 440, "status": "COMPLETED",               [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 9, "quantity": 1, "id": 1326, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"}, "ingredient": {"id":   [38;5;135m│[0m
+[38;5;135m│[0m 9, "name": "Pane degli Abissi"}}, {"priceForEach": 120, "status": "COMPLETED", "ingredientId": 1, "quantity": 2, "id": 1353, "turnId":  [38;5;135m│[0m
+[38;5;135m│[0m 6, "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": [38;5;135m│[0m
+[38;5;135m│[0m 28, "status": "COMPLETED", "ingredientId": 1, "quantity": 1, "id": 1423, "turnId": 6, "restaurantId": 3, "restaurant": {"name":         [38;5;135m│[0m
+[38;5;135m│[0m "Domenicaln"}, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId":  [38;5;135m│[0m
+[38;5;135m│[0m 26, "quantity": 1, "id": 1313, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 26, "name":  [38;5;135m│[0m
+[38;5;135m│[0m "Plasma Vitale"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 6, "quantity": 2, "id": 1335, "turnId": 6,               [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}}, [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 20, "quantity": 2, "id": 1352, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 20, "name": "Biscotti della Galassia"}}, {"priceForEach":   [38;5;135m│[0m
+[38;5;135m│[0m 50, "status": "CANCELLED", "ingredientId": 8, "quantity": 2, "id": 1378, "turnId": 6, "restaurantId": 5, "restaurant": {"name":         [38;5;135m│[0m
+[38;5;135m│[0m "Piadina as a Service (PaaS)"}, "ingredient": {"id": 8, "name": "Carne di Xenodonte"}}, {"priceForEach": 50, "status": "CANCELLED",     [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 21, "quantity": 2, "id": 1391, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 21, "name": "Amido di Stellarion"}}, {"priceForEach": 50, "status": "COMPLETED", "ingredientId": 21, "quantity":   [38;5;135m│[0m
+[38;5;135m│[0m 2, "id": 1414, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 21, "name":  [38;5;135m│[0m
+[38;5;135m│[0m "Amido di Stellarion"}}, {"priceForEach": 70, "status": "COMPLETED", "ingredientId": 3, "quantity": 1, "id": 1355, "turnId": 6,         [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 18, "restaurant": {"name": "Starrats"}, "ingredient": {"id": 3, "name": "Foglie di Nebulosa"}}, {"priceForEach": 28,    [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 24, "quantity": 1, "id": 1434, "turnId": 6, "restaurantId": 3, "restaurant": {"name":            [38;5;135m│[0m
+[38;5;135m│[0m "Domenicaln"}, "ingredient": {"id": 24, "name": "Spaghi del Sole"}}, {"priceForEach": 80, "status": "COMPLETED", "ingredientId": 7,     [38;5;135m│[0m
+[38;5;135m│[0m "quantity": 1, "id": 1363, "turnId": 6, "restaurantId": 7, "restaurant": {"name": "Siesta dopo pizza"}, "ingredient": {"id": 7, "name": [38;5;135m│[0m
+[38;5;135m│[0m "Carne di Mucca"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 5, "quantity": 1, "id": 1314, "turnId": 6,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 5, "name": "Essenza di Tachioni"}}, {"priceForEach": 50, [38;5;135m│[0m
+[38;5;135m│[0m "status": "INCOMPLETE", "ingredientId": 15, "quantity": 2, "id": 1408, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina  [38;5;135m│[0m
+[38;5;135m│[0m as a Service (PaaS)"}, "ingredient": {"id": 15, "name": "Funghi Orbitali"}}, {"priceForEach": 460, "status": "COMPLETED",               [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 32, "quantity": 1, "id": 1327, "turnId": 6, "restaurantId": 12, "restaurant": {"name": "Bluers"}, "ingredient": {"id":  [38;5;135m│[0m
+[38;5;135m│[0m 32, "name": "Uova di Fenice"}}, {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 1, "quantity": 2, "id": 1330, "turnId": 6,  [38;5;135m│[0m
+[38;5;135m│[0m "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 1, "name": "Radici di Gravit\u00e0"}},   [38;5;135m│[0m
+[38;5;135m│[0m {"priceForEach": 50, "status": "CANCELLED", "ingredientId": 23, "quantity": 2, "id": 1393, "turnId": 6, "restaurantId": 5,              [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Piadina as a Service (PaaS)"}, "ingredient": {"id": 23, "name": "Essenza di Speziaria"}}, {"priceForEach": 80,  [38;5;135m│[0m
+[38;5;135m│[0m "status": "COMPLETED", "ingredientId": 6, "quantity": 2, "id": 1420, "turnId": 6, "restaurantId": 3, "restaurant": {"name":             [38;5;135m│[0m
+[38;5;135m│[0m "Domenicaln"}, "ingredient": {"id": 6, "name": "Carne di Balena spaziale"}}, {"priceForEach": 50, "status": "COMPLETED",                [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 9, "quantity": 2, "id": 1402, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},    [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 9, "name": "Pane degli Abissi"}}, {"priceForEach": 51, "status": "COMPLETED", "ingredientId": 27, "quantity": 1,   [38;5;135m│[0m
+[38;5;135m│[0m "id": 1315, "turnId": 6, "restaurantId": 20, "restaurant": {"name": "sphacketti"}, "ingredient": {"id": 27, "name": "Shard di Materia   [38;5;135m│[0m
+[38;5;135m│[0m Oscura"}}, {"priceForEach": 480, "status": "COMPLETED", "ingredientId": 36, "quantity": 1, "id": 1325, "turnId": 6, "restaurantId": 12, [38;5;135m│[0m
+[38;5;135m│[0m "restaurant": {"name": "Bluers"}, "ingredient": {"id": 36, "name": "Carne di Drago"}}, {"priceForEach": 50, "status": "INCOMPLETE",     [38;5;135m│[0m
+[38;5;135m│[0m "ingredientId": 23, "quantity": 2, "id": 1416, "turnId": 6, "restaurantId": 5, "restaurant": {"name": "Piadina as a Service (PaaS)"},   [38;5;135m│[0m
+[38;5;135m│[0m "ingredient": {"id": 23, "name": "Essenza di Speziaria"}}]}                                                                             [38;5;135m│[0m
+[38;5;135m╰─[0m[38;5;135m args: {'turn_id': 6} [0m[38;5;135m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m─╯[0m
+[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m18:37:03[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m2[0m[38;5;135m --- [0m
 [1m<[0m[1;38;5;135mprice_analyst_expert[0m[1m>[0m
-[38;5;135m╭─[0m[38;5;135m──────────────────────────────────────[0m[38;5;135m TOOL GET_ITEM_UTILITY_SCORE RESULT [0m[38;5;135m──────────────────────────────────────[0m[38;5;135m─╮[0m
-[38;5;135m│[0m 1.0                                                                                                              [38;5;135m│[0m
-[38;5;135m╰─[0m[38;5;135m args: {'item_name': 'Fibra di Sintetex'} [0m[38;5;135m──────────────────────────────────────────────────────────────────────[0m[38;5;135m─╯[0m
-[1;37m2026[0m[37m-[0m[1;37m02[0m[37m-[0m[1;37m28[0m[37m [0m[1;37m17:45:11[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m3[0m[38;5;135m --- [0m
-[1m<[0m[1;38;5;135mprice_analyst_expert[0m[1m>[0m
-[38;5;135m╭─[0m[38;5;135m─────────────────────────────────────────────────[0m[38;5;135m FINAL ANSWER [0m[38;5;135m─────────────────────────────────────────────────[0m[38;5;135m─╮[0m
-[38;5;135m│[0m {                                                                                                                [38;5;135m│[0m
-[38;5;135m│[0m     "Foglie di Nebulosa": 40,                                                                                    [38;5;135m│[0m
-[38;5;135m│[0m     "Carne di Mucca": 55,                                                                                        [38;5;135m│[0m
-[38;5;135m│[0m     "Shard di Prisma Stellare": 50,                                                                              [38;5;135m│[0m
-[38;5;135m│[0m     "Baccacedro": 50,                                                                                            [38;5;135m│[0m
-[38;5;135m│[0m     "Carne di Balena spaziale": 89,                                                                              [38;5;135m│[0m
-[38;5;135m│[0m     "Farina di Nettuno": 40,                                                                                     [38;5;135m│[0m
-[38;5;135m│[0m     "Fibra di Sintetex": 500,                                                                                    [38;5;135m│[0m
-[38;5;135m│[0m     "Amido di Stellarion": 130,                                                                                  [38;5;135m│[0m
-[38;5;135m│[0m     "Spaghi del Sole": 43,                                                                                       [38;5;135m│[0m
-[38;5;135m│[0m     "Foglie di Mandragora": 65,                                                                                  [38;5;135m│[0m
-[38;5;135m│[0m     "Funghi dell’Etere": 61,                                                                                     [38;5;135m│[0m
-[38;5;135m│[0m     "Gnocchi del Crepuscolo": 80,                                                                                [38;5;135m│[0m
-[38;5;135m│[0m     "Sale Temporale": 39,                                                                                        [38;5;135m│[0m
-[38;5;135m│[0m     "Biscotti della Galassia": 50,                                                                               [38;5;135m│[0m
-[38;5;135m│[0m     "Riso di Cassandra": 50,                                                                                     [38;5;135m│[0m
-[38;5;135m│[0m     "Alghe Bioluminescenti": 77,                                                                                 [38;5;135m│[0m
-[38;5;135m│[0m     "Pane degli Abissi": 120,                                                                                    [38;5;135m│[0m
-[38;5;135m│[0m     "Polvere di Pulsar": 93,                                                                                     [38;5;135m│[0m
-[38;5;135m│[0m     "Granuli di Nebbia Arcobaleno": 39,                                                                          [38;5;135m│[0m
-[38;5;135m│[0m     "Funghi Orbitali": 28,                                                                                       [38;5;135m│[0m
-[38;5;135m│[0m     "Essenza di Tachioni": 83,                                                                                   [38;5;135m│[0m
-[38;5;135m│[0m     "Essenza di Speziaria": 50,                                                                                  [38;5;135m│[0m
-[38;5;135m│[0m     "Radici di Gravità": 77,                                                                                     [38;5;135m│[0m
-[38;5;135m│[0m     "Lacrime di Unicorno": 76,                                                                                   [38;5;135m│[0m
-[38;5;135m│[0m     "Carne di Kraken": 85,                                                                                       [38;5;135m│[0m
-[38;5;135m│[0m     "Plasma Vitale": 28,                                                                                         [38;5;135m│[0m
-[38;5;135m│[0m     "Shard di Materia Oscura": 150,                                                                              [38;5;135m│[0m
-[38;5;135m│[0m     "Uova di Fenice": 460,                                                                                       [38;5;135m│[0m
-[38;5;135m│[0m     "Carne di Drago": 480                                                                                        [38;5;135m│[0m
-[38;5;135m│[0m }                                                                                                                [38;5;135m│[0m
-[38;5;135m╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+[38;5;135m╭─[0m[38;5;135m────────────────────────────────────────────────────────────[0m[38;5;135m FINAL ANSWER [0m[38;5;135m─────────────────────────────────────────────────────────────[0m[38;5;135m─╮[0m
+[38;5;135m│[0m {                                                                                                                                       [38;5;135m│[0m
+[38;5;135m│[0m   "Foglie di Nebulosa": 50,                                                                                                             [38;5;135m│[0m
+[38;5;135m│[0m   "Carne di Mucca": 40,                                                                                                                 [38;5;135m│[0m
+[38;5;135m│[0m   "Shard di Prisma Stellare": 50,                                                                                                       [38;5;135m│[0m
+[38;5;135m│[0m   "Baccacedro": 50,                                                                                                                     [38;5;135m│[0m
+[38;5;135m│[0m   "Carne di Balena spaziale": 90,                                                                                                       [38;5;135m│[0m
+[38;5;135m│[0m   "Farina di Nettuno": 40,                                                                                                              [38;5;135m│[0m
+[38;5;135m│[0m   "Fibra di Sintetex": 500,                                                                                                             [38;5;135m│[0m
+[38;5;135m│[0m   "Amido di Stellarion": 150,                                                                                                           [38;5;135m│[0m
+[38;5;135m│[0m   "Spaghi del Sole": 40,                                                                                                                [38;5;135m│[0m
+[38;5;135m│[0m   "Foglie di Mandragora": 65,                                                                                                           [38;5;135m│[0m
+[38;5;135m│[0m   "Funghi dell’Etere": 55,                                                                                                              [38;5;135m│[0m
+[38;5;135m│[0m   "Gnocchi del Crepuscolo": 60,                                                                                                         [38;5;135m│[0m
+[38;5;135m│[0m   "Sale Temporale": 40,                                                                                                                 [38;5;135m│[0m
+[38;5;135m│[0m   "Biscotti della Galassia": 50,                                                                                                        [38;5;135m│[0m
+[38;5;135m│[0m   "Riso di Cassandra": 50,                                                                                                              [38;5;135m│[0m
+[38;5;135m│[0m   "Alghe Bioluminescenti": 80,                                                                                                          [38;5;135m│[0m
+[38;5;135m│[0m   "Carne di Xenodonte": 240,                                                                                                            [38;5;135m│[0m
+[38;5;135m│[0m   "Polvere di Pulsar": 95,                                                                                                              [38;5;135m│[0m
+[38;5;135m│[0m   "Pane di Luce": 65,                                                                                                                   [38;5;135m│[0m
+[38;5;135m│[0m   "Pane degli Abissi": 150,                                                                                                             [38;5;135m│[0m
+[38;5;135m│[0m   "Carne di Kraken": 85,                                                                                                                [38;5;135m│[0m
+[38;5;135m│[0m   "Uova di Fenice": 460,                                                                                                                [38;5;135m│[0m
+[38;5;135m│[0m   "Shard di Materia Oscura": 100,                                                                                                       [38;5;135m│[0m
+[38;5;135m│[0m   "Lacrime di Unicorno": 100,                                                                                                           [38;5;135m│[0m
+[38;5;135m│[0m   "Plasma Vitale": 40,                                                                                                                  [38;5;135m│[0m
+[38;5;135m│[0m   "Essenza di Tachioni": 80,                                                                                                            [38;5;135m│[0m
+[38;5;135m│[0m   "Essenza di Speziaria": 50,                                                                                                           [38;5;135m│[0m
+[38;5;135m│[0m   "Radici di Gravità": 80,                                                                                                              [38;5;135m│[0m
+[38;5;135m│[0m   "Carne di Drago": 480,                                                                                                                [38;5;135m│[0m
+[38;5;135m│[0m   "Granuli di Nebbia Arcobaleno": 28                                                                                                    [38;5;135m│[0m
+[38;5;135m│[0m }                                                                                                                                       [38;5;135m│[0m
+[38;5;135m╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
-✅ Prezzi generati con successo: {"Foglie di Nebulosa": 40, "Carne di Mucca": 55, "Shard di Prisma Stellare": 50, "Baccacedro": 50, "Carne di Balena spaziale": 89, "Farina di Nettuno": 40, "Fibra di Sintetex": 500, "Amido di Stellarion": 130, "Spaghi del Sole": 43, "Foglie di Mandragora": 65, "Funghi dell\u2019Etere": 61, "Gnocchi del Crepuscolo": 80, "Sale Temporale": 39, "Biscotti della Galassia": 50, "Riso di Cassandra": 50, "Alghe Bioluminescenti": 77, "Pane degli Abissi": 120, "Polvere di Pulsar": 93, "Granuli di Nebbia Arcobaleno": 39, "Funghi Orbitali": 28, "Essenza di Tachioni": 83, "Essenza di Speziaria": 50, "Radici di Gravit\u00e0": 77, "Lacrime di Unicorno": 76, "Carne di Kraken": 85, "Plasma Vitale": 28, "Shard di Materia Oscura": 150, "Uova di Fenice": 460, "Carne di Drago": 480}
+✅ Prezzi generati con successo: {"Foglie di Nebulosa": 50, "Carne di Mucca": 40, "Shard di Prisma Stellare": 50, "Baccacedro": 50, "Carne di Balena spaziale": 90, "Farina di Nettuno": 40, "Fibra di Sintetex": 500, "Amido di Stellarion": 150, "Spaghi del Sole": 40, "Foglie di Mandragora": 65, "Funghi dell\u2019Etere": 55, "Gnocchi del Crepuscolo": 60, "Sale Temporale": 40, "Biscotti della Galassia": 50, "Riso di Cassandra": 50, "Alghe Bioluminescenti": 80, "Carne di Xenodonte": 240, "Polvere di Pulsar": 95, "Pane di Luce": 65, "Pane degli Abissi": 150, "Carne di Kraken": 85, "Uova di Fenice": 460, "Shard di Materia Oscura": 100, "Lacrime di Unicorno": 100, "Plasma Vitale": 40, "Essenza di Tachioni": 80, "Essenza di Speziaria": 50, "Radici di Gravit\u00e0": 80, "Carne di Drago": 480, "Granuli di Nebbia Arcobaleno": 28}
 💾 Prezzi salvati con successo su Firebase in runs/turn_7/bids_prices.

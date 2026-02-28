@@ -69,6 +69,18 @@ async def closed_bid_phase_started() -> None:
         if prices:
             log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
             # FUTURE: Submit these bids to the server using the team API
+            
+            # --- START BIDDING PIPELINE ---
+            from bidder.bidder import place_bids_for_turn
+            
+            try:
+                log("AGENT", f"Placing bids for turn {CURRENT_TURN_ID}...")
+                await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
+                
+                log("AGENT", "Bidding pipeline execution completed.")
+            except Exception as e:
+                log("ERROR", f"Failed to execute bidding pipeline: {e}")
+            # --- END BIDDING PIPELINE ---
     else:
         log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
 
