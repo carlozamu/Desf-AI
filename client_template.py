@@ -20,6 +20,7 @@ from price_analyst.agent import get_bidding_prices
 from price_analyst.bid_tracker import fetch_and_save_bid_history
 from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
 from serving.meals_tracker import collect_turn_meals, save_to_firebase, init_firebase
+from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
 
 from datapizza.tools.mcp_client import MCPClient
 import os
@@ -202,24 +203,38 @@ async def end_turn() -> None:
 
     global CURRENT_TURN_ID
     if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("MEALS", f"Collecting meals data for turn {CURRENT_TURN_ID}...")
+        log("TRACKERS", f"Running end-of-turn trackers for turn {CURRENT_TURN_ID}...")
         try:
             db = init_firebase()
             if db:
-                restaurants_data = await collect_turn_meals(CURRENT_TURN_ID)
-                if restaurants_data:
-                    await asyncio.to_thread(
-                        save_to_firebase, db, CURRENT_TURN_ID, RUN_ID, restaurants_data
-                    )
-                    log("MEALS", f"✅ Meals for turn {CURRENT_TURN_ID} saved to Firebase.")
+                # Esegui meals tracker e menu tracker in parallelo
+                meals_data, menus_data = await asyncio.gather(
+                    collect_turn_meals(CURRENT_TURN_ID),
+                    collect_all_menus(),
+                )
+                # Salva entrambi (operazioni di I/O Firestore in thread separato)
+                tasks = []
+                if meals_data:
+                    tasks.append(asyncio.to_thread(
+                        save_to_firebase, db, CURRENT_TURN_ID, RUN_ID, meals_data
+                    ))
                 else:
                     log("MEALS", "⚠️  No meals data collected.")
+                if menus_data:
+                    tasks.append(asyncio.to_thread(
+                        save_menus_to_firebase, db, CURRENT_TURN_ID, RUN_ID, menus_data
+                    ))
+                else:
+                    log("MENUS", "⚠️  No menu data collected.")
+                if tasks:
+                    await asyncio.gather(*tasks)
+                log("TRACKERS", f"✅ Turn {CURRENT_TURN_ID} data saved to Firebase.")
             else:
-                log("MEALS", "⚠️  Firebase not available, skipping meals save.")
+                log("TRACKERS", "⚠️  Firebase not available, skipping save.")
         except Exception as e:
-            log("ERROR", f"Meals tracker failed: {e}")
+            log("ERROR", f"End-of-turn trackers failed: {e}")
     else:
-        log("MEALS", "⚠️  Unknown turn_id, skipping meals save.")
+        log("TRACKERS", "⚠️  Unknown turn_id, skipping end-of-turn save.")
 
 
 async def client_spawned(data: dict[str, Any]) -> None:

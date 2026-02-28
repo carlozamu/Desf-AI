@@ -13,7 +13,7 @@ import sys
 
 # ─── Parametri di test ────────────────────────────────────────────────────────
 
-TURN_ID = 16          # ← turno da interrogare
+TURN_ID = 17          # ← turno da interrogare
 RUN_ID  = "test"     # ← etichetta della run (usata come parte del doc_id in Firebase)
 
 # ─────────────────────────────────────────────────────────────────────────────
