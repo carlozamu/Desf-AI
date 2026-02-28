@@ -49,6 +49,16 @@ MAX_INGREDIENT_BID = 30
 PORTIONS_PER_RECIPE = 2
 MAX_TARGET_RECIPES = 3
 
+PRICING_MODE = os.getenv("PRICING_MODE", "").strip().lower()
+PRICING_TEST_TURN_RAW = os.getenv("PRICING_TEST_TURN", "").strip()
+SSE_RETRY_DELAY = int(os.getenv("SSE_RETRY_DELAY", "3"))
+SSE_CONFLICT_RETRY_DELAY = int(os.getenv("SSE_CONFLICT_RETRY_DELAY", "6"))
+
+try:
+    PRICING_TEST_TURN = int(PRICING_TEST_TURN_RAW) if PRICING_TEST_TURN_RAW else -1
+except ValueError:
+    PRICING_TEST_TURN = -1
+
 
 def log(tag: str, message: str) -> None:
     print(f"[{tag}] {datetime.now().isoformat(timespec='seconds')}: {message}")
@@ -274,7 +284,15 @@ async def waiting_phase_started() -> None:
         log("MENU", "TARGET_RECIPES vuoto, menu non aggiornato")
         return
 
-    menus_data = await collect_all_menus()
+    is_cost_1x_test = (
+        PRICING_MODE == "cost_1x_test"
+        and PRICING_TEST_TURN > 0
+        and CURRENT_TURN_ID == PRICING_TEST_TURN
+    )
+    if is_cost_1x_test:
+        log("MENU", f"Pricing mode attivo: cost_1x_test (turn={CURRENT_TURN_ID})")
+
+    menus_data = await collect_all_menus() if not is_cost_1x_test else {}
 
     menu_items: list[dict[str, Any]] = []
     for recipe in TARGET_RECIPES:
@@ -283,22 +301,29 @@ async def waiting_phase_started() -> None:
             continue
 
         ingredient_cost = estimate_recipe_cost(recipe)
-        base_price = max(50, int(ingredient_cost * 1.8))
-
-        competitor_min = get_lowest_competitor_price(
-            menus_data,
-            dish_name,
-            my_restaurant_id=TEAM_ID,
-        )
-
-        if competitor_min is not None:
-            competitive_price = max(40, int(competitor_min) - 1)
-            final_price = max(base_price, competitive_price)
+        if is_cost_1x_test:
+            final_price = max(1, int(ingredient_cost))
+            pricing_mode_applied = "cost_1x_test"
         else:
-            final_price = base_price
+            base_price = max(50, int(ingredient_cost * 1.8))
+            competitor_min = get_lowest_competitor_price(
+                menus_data,
+                dish_name,
+                my_restaurant_id=TEAM_ID,
+            )
+            if competitor_min is not None:
+                competitive_price = max(40, int(competitor_min) - 1)
+                final_price = max(base_price, competitive_price)
+            else:
+                final_price = base_price
+            final_price = max(1, min(999, final_price))
+            pricing_mode_applied = "default_competitive"
 
-        final_price = max(1, min(999, final_price))
         menu_items.append({"name": dish_name, "price": final_price})
+        log(
+            "MENU-PRICE",
+            f"dish={dish_name} cost={ingredient_cost} price={final_price} mode={pricing_mode_applied}",
+        )
 
     if not menu_items:
         log("MENU", "Nessuna voce menu da salvare")
@@ -565,8 +590,29 @@ async def listen_once(session: aiohttp.ClientSession) -> None:
 async def listen_once_and_exit_on_drop() -> None:
     timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=None)
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        await listen_once(session)
-        log("SSE", "connection closed, exiting")
+        while True:
+            try:
+                await listen_once(session)
+                log("SSE", f"connection closed, retry in {SSE_RETRY_DELAY}s")
+                await asyncio.sleep(SSE_RETRY_DELAY)
+            except aiohttp.ClientResponseError as exc:
+                if exc.status == 409:
+                    log(
+                        "SSE",
+                        (
+                            f"409 Conflict: esiste gia una connessione attiva per team {TEAM_ID}. "
+                            f"Retry in {SSE_CONFLICT_RETRY_DELAY}s"
+                        ),
+                    )
+                    await asyncio.sleep(SSE_CONFLICT_RETRY_DELAY)
+                    continue
+                if exc.status in (401, 403):
+                    raise SystemExit(f"SSE auth error ({exc.status}). Verifica TEAM_ID/API key.")
+                log("SSE", f"HTTP error {exc.status}, retry in {SSE_RETRY_DELAY}s")
+                await asyncio.sleep(SSE_RETRY_DELAY)
+            except aiohttp.ClientError as exc:
+                log("SSE", f"connection error: {exc}; retry in {SSE_RETRY_DELAY}s")
+                await asyncio.sleep(SSE_RETRY_DELAY)
 
 
 async def main() -> None:
