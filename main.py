@@ -9,7 +9,7 @@ import client_template as sse_client
 
 # ── Chef Agent ────────────────────────────────────────────────────────────────
 # Menu planning + shopping list generation (run during speaking/waiting phase)
-from chef.chef_agent import init_chef_agent, plan_daily_menu
+# from chef.chef_agent import init_chef_agent, plan_daily_menu
 
 memory = GameMemory()
 
@@ -38,7 +38,7 @@ async def custom_game_started(data):
     await fetch_initial_data()
 
     # Bind chef agent to the shared memory once at game start
-    init_chef_agent(memory)
+    # init_chef_agent(memory)
 
 
 async def custom_phase_changed(data):
@@ -55,10 +55,10 @@ async def custom_phase_changed(data):
         # computes quantities, and saves the shopping list to Firestore for
         # the Market Scanner / Trader agents to consume.
         #
-        target_audience = "Galactic Explorer"  # TODO: infer from game state
-        markdown_plan, shopping_list = plan_daily_menu(target_audience)
-        sse_client.log("CHEF", f"Menu plan ready. Shopping list: {shopping_list}")
-
+        # target_audience = "Galactic Explorer"  # TODO: infer from game state
+        # markdown_plan, shopping_list = plan_daily_menu(target_audience)
+        # sse_client.log("CHEF", f"Menu plan ready. Shopping list: {shopping_list}")
+        pass
 
     elif phase == "closed_bid":
         # TODO: Market Scanner + Trader agents will run here,
