@@ -8,8 +8,12 @@ import api
 import client_template as sse_client
 
 # ── Chef Agent ────────────────────────────────────────────────────────────────
-# Menu planning + shopping list generation (run during speaking/waiting phase)
+# Menu planning + shopping list generation (run during speaking phase)
 # from chef.chef_agent import init_chef_agent, plan_daily_menu
+
+# ── Market Scanner Agent ───────────────────────────────────────────────────────
+# Scans the live market for BUY/SELL opportunities based on Chef's shopping list
+# from market_scanner.market_scanner_agent import init_market_scanner, scan_market
 
 memory = GameMemory()
 
@@ -37,8 +41,9 @@ async def custom_game_started(data):
     sse_client.log("EVENT", f"Game started, turn_id={turn_id}")
     await fetch_initial_data()
 
-    # Bind chef agent to the shared memory once at game start
+    # Bind agents to shared memory once at game start
     # init_chef_agent(memory)
+    # init_market_scanner(memory)
 
 
 async def custom_phase_changed(data):
@@ -49,15 +54,21 @@ async def custom_phase_changed(data):
     await sse_client.game_phase_changed(data)
 
     if phase == "speaking":
-        # ── CHEF AGENT ──────────────────────────────────────────────────────
-        # Run menu analysis and optimization during the speaking phase.
-        # Determines the best dishes to prepare based on target audience,
-        # computes quantities, and saves the shopping list to Firestore for
-        # the Market Scanner / Trader agents to consume.
+        # ── STEP 1: CHEF AGENT ──────────────────────────────────────────────
+        # Decides the menu, quantities, and outputs a shopping list.
+        # Saves the shopping list to Firestore (chef_plans/turn_{N}).
         #
         # target_audience = "Galactic Explorer"  # TODO: infer from game state
         # markdown_plan, shopping_list = plan_daily_menu(target_audience)
         # sse_client.log("CHEF", f"Menu plan ready. Shopping list: {shopping_list}")
+        #
+        # ── STEP 2: MARKET SCANNER ──────────────────────────────────────────
+        # Reads the shopping list, scans live market entries and bid history.
+        # Produces BUY/SELL alerts → saved to Firestore (market_alerts/turn_{N}).
+        # Alerts are passed to the Trader agent in the closed_bid phase.
+        #
+        # markdown_report, alerts = scan_market(shopping_list)
+        # sse_client.log("MARKET_SCANNER", f"{len(alerts)} opportunity alerts generated.")
         pass
 
     elif phase == "closed_bid":
