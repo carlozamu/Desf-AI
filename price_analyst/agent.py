@@ -11,6 +11,9 @@ from datapizza.tools import Tool
 
 from price_analyst.bid_tracker import init_firebase
 
+# Numero massimo di run storiche da analizzare
+_MAX_HISTORY_RUNS = 5
+
 load_dotenv()
 
 REGOLO_API_KEY = os.getenv("REGOLO_API_KEY")
@@ -51,6 +54,7 @@ def save_logs_to_file(filename: str):
 
 # --- FIREBASE TOOLS ---
 def get_past_bids(turn_id: int) -> str:
+    """Legacy: legge una singola run da Firebase. Usa get_recent_bids() per l'analisi normale."""
     cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase_credentials.json")
     db = init_firebase(cred_path)
     if not db:
@@ -63,6 +67,37 @@ def get_past_bids(turn_id: int) -> str:
             return json.dumps(doc.to_dict())
         else:
             return json.dumps({"error": f"No bid history found for turn {turn_id}."})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+def get_recent_bids() -> str:
+    """
+    Restituisce le ultime _MAX_HISTORY_RUNS run di bid history da Firebase,
+    ordinate dalla più recente alla più vecchia.
+    Non richiede input.
+    """
+    cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase_credentials.json")
+    db = init_firebase(cred_path)
+    if not db:
+        return json.dumps({"error": "No Firestore client available."})
+
+    try:
+        docs = (
+            db.collection("bid_history")
+            .order_by("timestamp", direction="DESCENDING")
+            .limit(_MAX_HISTORY_RUNS)
+            .stream()
+        )
+        runs = []
+        for doc in docs:
+            d = doc.to_dict()
+            d["_doc_id"] = doc.id
+            runs.append(d)
+        if not runs:
+            return json.dumps({"message": "No bid history found in Firebase."})
+        log_message(f"📦 Caricate {len(runs)} run recenti da Firebase (max={_MAX_HISTORY_RUNS}).")
+        return json.dumps(runs, default=str)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
@@ -86,42 +121,59 @@ def save_bids_to_firebase(turn_id: int, prices: dict):
 
 # --- AGENT SETUP ---
 tools = [
-     Tool(name="get_past_bids", func=get_past_bids, description="Input turn_id as integer. Retrieves concluded bids for a specific past turn from Firebase Firestore. Use this tool to get historical pricing data to analyze trends."),
-     Tool(name="get_item_utility_score", func=get_item_utility_score, description="Input item name as string. Retrieves the utility score for a given item. This score indicates the strategic value of the item in the current state of the game.")
+    Tool(
+        name="get_recent_bids",
+        func=get_recent_bids,
+        description=(
+            f"No input required. Returns the last {_MAX_HISTORY_RUNS} bid-history runs from Firebase, "
+            "ordered from most recent to oldest. Each entry contains item names and their winning "
+            "bid prices. Use this as your ONLY source of historical price data."
+        ),
+    ),
+    Tool(
+        name="get_item_utility_score",
+        func=get_item_utility_score,
+        description="Input item name as string. Retrieves the utility score for a given item.",
+    ),
 ]
 
 price_analyst_agent = Agent(
     name="price_analyst_expert",
     client=client,
-    system_prompt='''You are an expert pricing analyst for an auction-based game. 
+    system_prompt=f'''You are an expert pricing analyst for an auction-based game.
     Your goal is to determine the optimal bid price for ALL available food items for the current turn.
-    
-    You have access to tools that can fetch past bid history for previous turns and get the utility score for items.
-    
-    Follow these steps:
-    1. Look at the bid history using the get_past_bids tool for recent turns to understand the market trends. 
-    2. Consider the utility score of the items using the get_item_utility_score tool. Items with higher utility might warrant a higher bid.
-    3. Calculate a new bid price for every item.
-    
-    Output format MUST be a valid JSON object where keys are item names and values are the suggested bid price (integer). Do not include any other text.
-    Example:
-    {
-       "Pizza Margherita": 150,
-       "Pasta Carbonara": 200
-    }
+
+    RULES:
+    - Call get_recent_bids() ONCE to load the last {_MAX_HISTORY_RUNS} historical runs.
+    - Do NOT call get_past_bids. Do NOT loop over turn IDs. One call to get_recent_bids is enough.
+    - Use the historical data to compute a weighted average price per item (recent runs weigh more).
+    - Optionally call get_item_utility_score for items whose utility you want to check.
+    - Output ONLY a valid JSON object: keys = item names, values = suggested bid price (integer).
+    - Do not include any explanation or extra text outside the JSON.
+
+    Example output:
+    {{
+       "Farina Cosmica": 12,
+       "Acqua di Cometa": 8
+    }}
     ''',
-    tools=tools
+    tools=tools,
 )
 
 
 
 # --- MAIN EXECUTION ---
-def get_bidding_prices(current_turn: int, ) -> dict:
+def get_bidding_prices(current_turn: int, max_history: int = _MAX_HISTORY_RUNS) -> dict:
     """
-    Esegue l'agente catturandone l'output a terminale, salva su Firebase e crea il file di log in automatico.
+    Esegue l'agente catturandone l'output a terminale, salva su Firebase e crea il file di log.
+    Analizza solo le ultime `max_history` run (default: _MAX_HISTORY_RUNS).
     """
-    log_message(f"🤖 Inizio calcolo prezzi per il turno {current_turn}...")
-    prompt = f"Calculate the optimal bid prices for all items for turn {current_turn}. Review past turns if available."
+    log_message(f"🤖 Inizio calcolo prezzi per il turno {current_turn} (storia={max_history} run)...")
+    prompt = (
+        f"Calculate the optimal bid prices for all items for turn {current_turn}. "
+        f"Use get_recent_bids() to load the last {max_history} historical runs — "
+        f"do NOT fetch individual turns by ID."
+    )
     log_message(f"📝 Prompt inviato: {prompt}")
     
     # Catturiamo tutto l'output "grafico" della libreria Datapizza
@@ -145,7 +197,7 @@ def get_bidding_prices(current_turn: int, ) -> dict:
     
     # SALVATAGGIO NELLA CARTELLA DELL'AGENTE
     # Creiamo il percorso assoluto unendo AGENT_DIR al nome del file
-    log_filename = os.path.join(AGENT_DIR, f"execution_log_turn_{current_turn}.txt")
+    log_filename = os.path.join(AGENT_DIR, f"execution_log_turn.txt")
     save_logs_to_file(log_filename)
     
     return prices

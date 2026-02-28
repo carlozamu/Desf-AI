@@ -28,6 +28,7 @@ except ImportError as _e:
 from datapizza.tools.mcp_client import MCPClient
 from serving.meals_tracker import collect_turn_meals, init_firebase, save_to_firebase as save_meals_to_firebase, summarize_unserved_requests
 from serving.menu_tracker import collect_all_menus, get_lowest_competitor_price, save_to_firebase as save_menus_to_firebase
+from price_analyst.bid_tracker import fetch_and_save_bid_history
 
 load_dotenv()
 
@@ -285,6 +286,17 @@ async def waiting_phase_started() -> None:
     global ACTIVE_MENU
 
     log("PHASE", "waiting")
+
+    try:
+        firebase_cred_path = os.path('firebase_credentials.json')
+        await fetch_and_save_bid_history(
+            turn_id=CURRENT_TURN_ID,
+            api_key=TEAM_API_KEY,
+            base_url=BASE_URL,
+            cred_path=firebase_cred_path
+        )
+    except Exception as exc:
+        log("BID", f"Impossibile ottenere storico bid: {exc}")
 
     if not TARGET_RECIPES:
         log("MENU", "TARGET_RECIPES vuoto, menu non aggiornato")
