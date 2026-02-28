@@ -1,2 +1,4 @@
 doc/
 .env
+datapizza_venv/
+setup-datapizza-ai/
