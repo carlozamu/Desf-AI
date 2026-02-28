@@ -13,7 +13,7 @@ import sys
 
 # ─── Parametri di test ────────────────────────────────────────────────────────
 
-TURN_ID = 17          # ← turno di riferimento (usato solo per il doc_id Firebase)
+TURN_ID = 24          # ← turno di riferimento (usato solo per il doc_id Firebase)
 RUN_ID  = "test"     # ← etichetta della run
 
 # ─────────────────────────────────────────────────────────────────────────────

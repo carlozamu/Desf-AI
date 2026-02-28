@@ -380,12 +380,41 @@ async def serving_phase_started() -> None:
 
 async def end_turn() -> None:
     log("EVENT", "turn ended")
-    global ACTIVE_MENU, DISHES_READY
 
-    # Pre-calcola la ricetta migliore per il turno SUCCESSIVO (OR-Tools)
-    # così è già pronta quando scatta game_started
-    # We no longer re-compute recipes at end_turn (Esploratore strategy)
-    pass
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("TRACKERS", f"Running end-of-turn trackers for turn {CURRENT_TURN_ID}...")
+        try:
+            db = init_firebase()
+            if db:
+                # Esegui meals tracker e menu tracker in parallelo
+                meals_data, menus_data = await asyncio.gather(
+                    collect_turn_meals(CURRENT_TURN_ID),
+                    collect_all_menus(),
+                )
+                # Salva entrambi (operazioni di I/O Firestore in thread separato)
+                tasks = []
+                if meals_data:
+                    tasks.append(asyncio.to_thread(
+                        save_to_firebase, db, CURRENT_TURN_ID, RUN_ID, meals_data
+                    ))
+                else:
+                    log("MEALS", "⚠️  No meals data collected.")
+                if menus_data:
+                    tasks.append(asyncio.to_thread(
+                        save_menus_to_firebase, db, CURRENT_TURN_ID, RUN_ID, menus_data
+                    ))
+                else:
+                    log("MENUS", "⚠️  No menu data collected.")
+                if tasks:
+                    await asyncio.gather(*tasks)
+                log("TRACKERS", f"✅ Turn {CURRENT_TURN_ID} data saved to Firebase.")
+            else:
+                log("TRACKERS", "⚠️  Firebase not available, skipping save.")
+        except Exception as e:
+            log("ERROR", f"End-of-turn trackers failed: {e}")
+    else:
+        log("TRACKERS", "⚠️  Unknown turn_id, skipping end-of-turn save.")
 
 
 async def client_spawned(data: dict[str, Any]) -> None:
