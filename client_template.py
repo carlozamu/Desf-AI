@@ -7,12 +7,244 @@
 # ]
 # ///
 
-from __future__ import annotations
-
 import asyncio
+import json
+from datetime import datetime
+from typing import Any, Awaitable, Callable
 
-from game_client.app import main
-from game_client.logging_utils import log
+import aiohttp
+
+# PRICE ANALYST IMPORT
+from price_analyst.bid_tracker import fetch_and_save_bid_history
+from price_analyst.agent import get_bidding_prices
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TEAM_ID = os.getenv("TEAM_ID")
+TEAM_API_KEY = os.getenv("SERVER_API_KEY")
+CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
+
+if not TEAM_API_KEY or not TEAM_ID:
+    raise SystemExit("Set TEAM_API_KEY and TEAM_ID environment variables")
+
+# GLOBALE VARIAVLE TO STORE the TURNEMENT
+CURRENT_TURN_ID = None
+
+
+def log(tag: str, message: str) -> None:
+    print(f"[{tag}] {datetime.now()}: {message}")
+
+
+async def game_started(data: dict[str, Any]) -> None:
+    global CURRENT_TURN_ID
+
+    turn_id = data.get("turn_id", None)
+
+    # Store the turnement id
+    CURRENT_TURN_ID = turn_id 
+
+    log("EVENT", "game started, turn id: " + str(turn_id))
+
+
+async def speaking_phase_started() -> None:
+    log("EVENT", "speaking phase started")
+
+
+async def closed_bid_phase_started() -> None:
+    log("EVENT", "closed bid phase started")
+    
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID}...")
+        
+        # We run the agent synchronously in a separate thread so we don't block the asyncio event loop
+        prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+        
+        if prices:
+            log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
+            # FUTURE: Submit these bids to the server using the team API
+            
+            # --- START BIDDING PIPELINE ---
+            from bidder.bidder import place_bids_for_turn
+            
+            try:
+                log("AGENT", f"Placing bids for turn {CURRENT_TURN_ID}...")
+                await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
+                
+                log("AGENT", "Bidding pipeline execution completed.")
+            except Exception as e:
+                log("ERROR", f"Failed to execute bidding pipeline: {e}")
+            # --- END BIDDING PIPELINE ---
+    else:
+        log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
+
+
+async def waiting_phase_started() -> None:
+    log("EVENT", "waiting phase started")
+
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID != 0:
+        log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
+        # Launch the task in the background without blocking the SSE
+        asyncio.create_task(fetch_and_save_bid_history(
+            turn_id=CURRENT_TURN_ID,
+            api_key=TEAM_API_KEY,
+            base_url=BASE_URL,
+            cred_path=CRED_PATH
+        ))
+    else:
+        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
+
+
+async def serving_phase_started() -> None:
+    log("EVENT", "serving phase started")
+
+
+async def end_turn() -> None:
+    log("EVENT", "turn ended")
+
+
+async def client_spawned(data: dict[str, Any]) -> None:
+    client_name = data.get("clientName", "unknown")
+    order_text = str(data.get("orderText", "unknown"))
+    order_text = order_text.lower().replace("i'd like a ", "").replace("i'd like ", "")
+    log("EVENT", f"client={client_name} order={order_text}")
+
+
+async def preparation_complete(data: dict[str, Any]) -> None:
+    dish_name = data.get("dish", "unknown")
+    log("EVENT", f"dish ready: {dish_name}")
+
+
+async def message(data: dict[str, Any]) -> None:
+    sender = data.get("sender", "unknown")
+    text = data.get("payload", "")
+    log("EVENT", f"message from {sender}: {text}")
+
+
+async def game_phase_changed(data: dict[str, Any]) -> None:
+    phase = data.get("phase", "unknown")
+    handlers: dict[str, Callable[[], Awaitable[None]]] = {
+        "speaking": speaking_phase_started,
+        "closed_bid": closed_bid_phase_started,
+        "waiting": waiting_phase_started,
+        "serving": serving_phase_started,
+        "stopped": end_turn,
+    }
+    handler = handlers.get(phase)
+    if handler:
+        await handler()
+    else:
+        log("EVENT", f"unknown phase: {phase}")
+
+
+async def game_reset(data: dict[str, Any]) -> None:
+    if data:
+        log("EVENT", f"game reset: {data}")
+    else:
+        log("EVENT", "game reset")
+
+
+EVENT_HANDLERS: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {
+    "game_started": game_started,
+    "game_phase_changed": game_phase_changed,
+    "game_reset": game_reset,
+    "client_spawned": client_spawned,
+    "preparation_complete": preparation_complete,
+    "message": message,
+}
+
+##########################################################################################
+#                                    DANGER ZONE                                         #
+##########################################################################################
+# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
+
+
+# It is the central event dispatcher used by all handlers.
+async def dispatch_event(event_type: str, event_data: dict[str, Any]) -> None:
+    handler = EVENT_HANDLERS.get(event_type)
+    if not handler:
+        return
+    try:
+        await handler(event_data)
+    except Exception as exc:
+        log("ERROR", f"handler failed for {event_type}: {exc}")
+
+
+# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
+# It parses SSE lines and translates them into internal events.
+async def handle_line(raw_line: bytes) -> None:
+    if not raw_line:
+        return
+
+    line = raw_line.decode("utf-8", errors="ignore").strip()
+    if not line:
+        return
+
+    # Standard SSE data format: data: ...
+    if line.startswith("data:"):
+        payload = line[5:].strip()
+        if payload == "connected":
+            log("SSE", "connected")
+            return
+        line = payload
+
+    try:
+        event_json = json.loads(line)
+    except json.JSONDecodeError:
+        log("SSE", f"raw: {line}")
+        return
+
+    event_type = event_json.get("type", "unknown")
+    event_data = event_json.get("data", {})
+    if isinstance(event_data, dict):
+        await dispatch_event(event_type, event_data)
+    else:
+        await dispatch_event(event_type, {"value": event_data})
+
+
+# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
+# It owns the SSE HTTP connection lifecycle.
+async def listen_once(session: aiohttp.ClientSession) -> None:
+    url = f"{BASE_URL}/events/{TEAM_ID}"
+    headers = {"Accept": "text/event-stream", "x-api-key": TEAM_API_KEY}
+
+    async with session.get(url, headers=headers) as response:
+        response.raise_for_status()
+        log("SSE", "connection open")
+        async for line in response.content:
+            await handle_line(line)
+
+
+# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
+# It controls script exit behavior when the SSE connection drops.
+async def listen_once_and_exit_on_drop() -> None:
+    timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=None)
+
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        await listen_once(session)
+        log("SSE", "connection closed, exiting")
+
+
+# DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
+# Keep this minimal to avoid changing startup behavior.
+async def main() -> None:
+    log("INIT", f"team={TEAM_ID} base_url={BASE_URL}")
+    await listen_once_and_exit_on_drop()
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        log("INIT", "client stopped")
+
 
 
 if __name__ == "__main__":
