@@ -22,6 +22,7 @@ from price_analyst.bid_tracker import fetch_and_save_bid_history
 from bidder.bidder import calculate_bids # Solo l'utility per generare l'array di bids
 from serving.meals_tracker import collect_turn_meals, save_to_firebase, init_firebase
 from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
+
 try:
     from seller.agent import run_seller_agent
 except ImportError as _e:
