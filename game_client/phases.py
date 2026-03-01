@@ -5,6 +5,7 @@ from typing import Any, Awaitable, Callable
 
 from game_client.config import ClientConfig, get_firebase_cred_path
 from game_client.logging_utils import log, set_log_context
+from game_client.market_buyer import buy_missing_ingredients
 from game_client.prestige_strategy import (
     TrendDirection,
     analyze_trend_direction,
@@ -116,6 +117,52 @@ class PhaseRunner:
             bids_size=len(plan.bids),
         )
 
+    async def _apply_budget_cap(self, bids: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Scale bid quantities down if total cost exceeds 80% of available balance."""
+        restaurant_info = await self.api_client.get_restaurant_info()
+        if not restaurant_info:
+            return bids
+
+        try:
+            balance = float(restaurant_info.get("balance", restaurant_info.get("credits", 0)) or 0)
+        except (TypeError, ValueError):
+            return bids
+
+        if balance <= 0:
+            return bids
+
+        budget_limit = balance * 0.80
+        total_cost = sum(int(b.get("bid", 0)) * int(b.get("quantity", 1)) for b in bids)
+
+        if total_cost <= budget_limit:
+            log(
+                "BID",
+                f"Budget OK: {total_cost:.0f} / {balance:.0f} (limite {budget_limit:.0f})",
+                event="bid.budget.ok",
+                total_cost=total_cost,
+                balance=balance,
+            )
+            return bids
+
+        scale = budget_limit / total_cost
+        scaled: list[dict[str, Any]] = []
+        for b in bids:
+            new_qty = max(1, int(int(b.get("quantity", 1)) * scale))
+            scaled.append({**b, "quantity": new_qty})
+
+        new_total = sum(int(b.get("bid", 0)) * int(b.get("quantity", 1)) for b in scaled)
+        log(
+            "BID",
+            f"Budget cap applicato: {total_cost:.0f} → {new_total:.0f} (saldo {balance:.0f}, limite {budget_limit:.0f})",
+            event="bid.budget.capped",
+            level="WARN",
+            original_cost=total_cost,
+            scaled_cost=new_total,
+            balance=balance,
+            scale_factor=scale,
+        )
+        return scaled
+
     def _set_phase_context(self, phase: str) -> None:
         self.state.current_phase = phase
         set_log_context(turn_id=self.state.current_turn_id, phase=phase)
@@ -140,6 +187,7 @@ class PhaseRunner:
 
         # 2. Fetch all recipes
         all_recipes = await self.api_client.get_recipes()
+        self.state.all_recipes = all_recipes
 
         # 3. Select 3 prestige-balanced recipes (one per tier)
         self.state.target_recipes = select_prestige_balanced_recipes(all_recipes, trend_direction)
@@ -175,7 +223,10 @@ class PhaseRunner:
             log("BID", "Nessun bid da inviare", event="bid.payload.empty", level="WARN")
             return
 
-        # 5. Submit bids
+        # 5. Budget cap: scale bids if total cost > 80% of current balance
+        bids = await self._apply_budget_cap(bids)
+
+        # 6. Submit bids
         log(
             "BID",
             f"{len(bids)} offerte pronte (mercato: {trend_direction.value})",
@@ -277,6 +328,32 @@ class PhaseRunner:
             return
         menu_str = " | ".join(f"{item['name']} {item['price']}cr" for item in menu_items)
         log("MENU", f"Menu → {menu_str}", event="menu.saved", menu_size=len(menu_items))
+
+        # Buy missing ingredients from market
+        try:
+            bought = await buy_missing_ingredients(
+                self.mcp_gateway,
+                self.api_client,
+                self.state.target_recipes,
+                self.state.ingredient_bids,
+                default_bid=self.config.min_ingredient_bid,
+            )
+            if bought:
+                log(
+                    "MARKET",
+                    f"Acquistati dal mercato: {bought}",
+                    event="market.buy.summary",
+                    bought=bought,
+                )
+        except Exception as exc:
+            log(
+                "MARKET",
+                f"Market buyer fallito: {exc}",
+                event="market.buy.failed",
+                level="ERROR",
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
 
     async def serving_phase_started(self) -> None:
         self._set_phase_context("serving")

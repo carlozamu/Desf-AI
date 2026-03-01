@@ -6,6 +6,7 @@ from game_client.config import ClientConfig
 from game_client.logging_utils import log, set_log_context
 from game_client.state import GameState
 from game_client.strategy import (
+    _dish_has_intolerance_conflict,
     get_client_id_from_event,
     pick_dish_for_order,
     resolve_client_id_from_meals,
@@ -97,15 +98,28 @@ class EventRouter:
             order_text=order_text,
         )
 
-        dish_name = pick_dish_for_order(order_text, self.state.active_menu)
+        dish_name, intolerances = pick_dish_for_order(
+            order_text, self.state.active_menu, self.state.all_recipes
+        )
         if not dish_name:
-            log(
-                "SERVE",
-                f"Nessun piatto per '{client_name}' (cerca: {order_text})",
-                event="serve.request.no_matching_dish",
-                client_name=client_name,
-                order_text=order_text,
-            )
+            if intolerances:
+                log(
+                    "SERVE",
+                    f"Intolleranza rilevata per '{client_name}': {intolerances} — piatto non servito",
+                    event="serve.request.intolerance_conflict",
+                    level="WARN",
+                    client_name=client_name,
+                    order_text=order_text,
+                    intolerances=intolerances,
+                )
+            else:
+                log(
+                    "SERVE",
+                    f"Nessun piatto per '{client_name}' (cerca: {order_text})",
+                    event="serve.request.no_matching_dish",
+                    client_name=client_name,
+                    order_text=order_text,
+                )
             return
 
         if self.state.dishes_ready.get(dish_name) is not True:
@@ -116,7 +130,30 @@ class EventRouter:
                 dish_name=dish_name,
                 client_name=client_name,
             )
-            return
+            # Try to find a ready alternative on the menu
+            alternative = None
+            for alt_item in self.state.active_menu:
+                alt_name = str(alt_item.get("name", "")).strip()
+                if not alt_name or alt_name == dish_name:
+                    continue
+                if self.state.dishes_ready.get(alt_name) is not True:
+                    continue
+                if not _dish_has_intolerance_conflict(alt_name, intolerances, self.state.all_recipes):
+                    alternative = alt_name
+                    break
+
+            if not alternative:
+                return
+
+            log(
+                "SERVE",
+                f"Alternativa trovata: '{alternative}' per '{client_name}' (richiesto: '{dish_name}')",
+                event="serve.request.alternative_found",
+                original_dish=dish_name,
+                alternative_dish=alternative,
+                client_name=client_name,
+            )
+            dish_name = alternative
 
         client_id = get_client_id_from_event(data)
         if not client_id:

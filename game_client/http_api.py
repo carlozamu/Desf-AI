@@ -8,9 +8,10 @@ from game_client.logging_utils import log
 
 
 class ApiClient:
-    def __init__(self, *, base_url: str, team_api_key: str) -> None:
+    def __init__(self, *, base_url: str, team_api_key: str, team_id: str = "") -> None:
         self.base_url = base_url
         self.team_api_key = team_api_key
+        self.team_id = team_id
 
     async def api_get(self, endpoint: str, *, params: dict[str, Any] | None = None) -> Any:
         url = f"{self.base_url}{endpoint}"
@@ -62,4 +63,14 @@ class ApiClient:
             "/meals",
             params={"turn_id": turn_id, "restaurant_id": restaurant_id},
         )
+        return data if isinstance(data, list) else []
+
+    async def get_restaurant_info(self) -> dict[str, Any] | None:
+        if not self.team_id:
+            return None
+        data = await self.api_get(f"/restaurant/{self.team_id}")
+        return data if isinstance(data, dict) else None
+
+    async def get_market_entries(self) -> list[dict[str, Any]]:
+        data = await self.api_get("/market/entries")
         return data if isinstance(data, list) else []

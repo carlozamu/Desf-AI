@@ -76,7 +76,7 @@ async def main() -> None:
         phase=state.current_phase,
     )
 
-    api_client = ApiClient(base_url=config.base_url, team_api_key=config.team_api_key)
+    api_client = ApiClient(base_url=config.base_url, team_api_key=config.team_api_key, team_id=config.team_id)
     mcp_gateway = MCPGateway(base_url=config.base_url, team_api_key=config.team_api_key)
     phase_runner = PhaseRunner(
         config=config,

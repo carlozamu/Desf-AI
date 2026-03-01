@@ -6,22 +6,31 @@ from typing import Any, Awaitable, Callable
 from game_client.logging_utils import log
 
 _REQUEST_PATTERN = re.compile(
-    r"^\s*i want to eat\s+(.+?)(?:\.\s*i'?m intolerant to.+)?\s*$",
+    r"^\s*i want to eat\s+(.+?)(?:\.\s*i'?m intolerant to\s+(.+?))?\s*$",
     re.IGNORECASE,
 )
 
+_INTOLERANCE_SEP = re.compile(r"[,\s]+and\s+|[,\s]+", re.IGNORECASE)
 
 
-def normalize_order_text(text: str) -> str:
-    raw = str(text or "").strip().lower()
+def normalize_order_text(text: str) -> tuple[str, list[str]]:
+    """Return (dish_name, intolerances) parsed from order text."""
+    raw = str(text or "").strip()
     if not raw:
-        return ""
+        return "", []
 
     match = _REQUEST_PATTERN.match(raw)
     if match:
-        return match.group(1).strip().lower()
+        dish = match.group(1).strip().lower()
+        intolerance_raw = match.group(2) or ""
+        intolerances = [
+            t.strip().lower()
+            for t in _INTOLERANCE_SEP.split(intolerance_raw)
+            if t.strip()
+        ]
+        return dish, intolerances
 
-    return raw
+    return raw.strip().lower(), []
 
 
 
@@ -180,19 +189,54 @@ def get_client_id_from_event(data: dict[str, Any]) -> str | None:
 
 
 
-def pick_dish_for_order(order_text: str, active_menu: list[dict[str, Any]]) -> str | None:
-    normalized = normalize_order_text(order_text)
-    if not normalized:
-        return None
+def _dish_has_intolerance_conflict(
+    dish_name: str,
+    intolerances: list[str],
+    recipes: list[dict[str, Any]],
+) -> bool:
+    """Return True if any ingredient of dish_name matches a client intolerance."""
+    if not intolerances:
+        return False
+    dish_lower = dish_name.lower()
+    for recipe in recipes:
+        if str(recipe.get("name", "")).strip().lower() != dish_lower:
+            continue
+        ingredients = recipe_ingredients(recipe)
+        for ing in ingredients:
+            ing_lower = ing.lower()
+            for intol in intolerances:
+                if intol and (intol in ing_lower or ing_lower in intol):
+                    return True
+    return False
+
+
+def pick_dish_for_order(
+    order_text: str,
+    active_menu: list[dict[str, Any]],
+    recipes: list[dict[str, Any]] | None = None,
+) -> tuple[str | None, list[str]]:
+    """Return (dish_name, intolerances).
+
+    dish_name is None if no matching dish found or all matches conflict with
+    the client's intolerances (in which case caller should log the conflict).
+    """
+    dish_query, intolerances = normalize_order_text(order_text)
+    if not dish_query:
+        return None, intolerances
+
+    all_recipes = recipes or []
 
     for item in active_menu:
         dish_name = str(item.get("name", "")).strip()
         if not dish_name:
             continue
-        if dish_name.lower() in normalized:
-            return dish_name
+        if dish_name.lower() not in dish_query:
+            continue
+        if _dish_has_intolerance_conflict(dish_name, intolerances, all_recipes):
+            return None, intolerances
+        return dish_name, intolerances
 
-    return None
+    return None, intolerances
 
 
 async def resolve_client_id_from_meals(
@@ -209,14 +253,14 @@ async def resolve_client_id_from_meals(
     if not meals:
         return None
 
-    target_order = normalize_order_text(order_text)
+    target_order, _ = normalize_order_text(order_text)
     target_name = str(client_name or "").strip().lower()
 
     for meal in meals:
         if meal.get("executed") is True:
             continue
 
-        req = normalize_order_text(str(meal.get("request", "")))
+        req, _ = normalize_order_text(str(meal.get("request", "")))
         meal_customer = meal.get("customer", {}) if isinstance(meal.get("customer"), dict) else {}
         meal_name = str(meal_customer.get("name", "")).strip().lower()
 

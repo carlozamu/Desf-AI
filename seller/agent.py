@@ -9,7 +9,7 @@ Strategia:
   3. Legge l'inventario corrente del ristorante.
   4. Calcola l'eccesso: ingredienti in inventario NON usati da nessuna ricetta del menu.
   5. Recupera il prezzo d'acquisto da bids_log.jsonl.
-  6. Chiama il tool MCP `sell_market` per ogni ingrediente in eccesso.
+  6. Chiama il tool MCP `create_market_entry` (side=SELL) per ogni ingrediente in eccesso.
 """
 
 import asyncio
@@ -41,8 +41,7 @@ TEAM_ID        = os.getenv("TEAM_ID", "")
 BASE_URL       = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 
 # Nome del tool MCP per vendere un ingrediente sul mercato
-# Adatta qui se l'API usa un nome diverso (es. "create_market_listing")
-MCP_SELL_TOOL  = "sell_market"
+MCP_SELL_TOOL  = "create_market_entry"
 
 # File con lo storico dei bid per recuperare i prezzi d'acquisto
 BID_LOG_FILE   = _ROOT / "bids_log.jsonl"
@@ -175,31 +174,23 @@ def get_bid_prices() -> str:
 def sell_ingredient(ingredient: str, quantity: int, price: float) -> str:
     """
     Vende `quantity` unità di `ingredient` sul mercato a `price` per unità.
-    Chiama il tool MCP 'sell_market'.
+    Chiama il tool MCP 'create_market_entry' con side=SELL.
     Input:
       ingredient: nome dell'ingrediente
       quantity:   quantità intera da vendere
       price:      prezzo per unità (float)
-
-    ⚠️  DRY RUN: la chiamata MCP reale è commentata per debug.
-         Rimuovi il commento per attivare la vendita effettiva.
     """
     if quantity <= 0:
         return json.dumps({"skipped": f"quantity={quantity} ≤ 0"})
 
-    # ── DRY RUN ─────────────────────────────────────────────────────────────
-    # Decommenta la riga sotto per attivare la vendita reale sul mercato.
-    # result = _sync_mcp(MCP_SELL_TOOL, {
-    #     "ingredient": ingredient,
-    #     "quantity":   int(quantity),
-    #     "price":      float(price),
-    # })
-    # return json.dumps(result, ensure_ascii=False)
-    # ────────────────────────────────────────────────────────────────────────
-
-    dry_run = {"dry_run": True, "ingredient": ingredient, "quantity": quantity, "price": price}
-    log("SELLER", f"Would sell (dry-run): {dry_run}", event="seller.dry_run.sell")
-    return json.dumps(dry_run)
+    result = _sync_mcp(MCP_SELL_TOOL, {
+        "side":            "SELL",
+        "ingredient_name": ingredient,
+        "quantity":        int(quantity),
+        "price":           float(price),
+    })
+    log("SELLER", f"create_market_entry result: {result}", event="seller.market.sell")
+    return json.dumps(result, ensure_ascii=False)
 
 
 # ─── Agent setup ──────────────────────────────────────────────────────────────
