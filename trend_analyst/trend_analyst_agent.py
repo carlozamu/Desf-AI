@@ -528,6 +528,32 @@ Our restaurant ID = {TEAM_ID}. Turns analyzed: {turns_str}.
 
         try:
             result = agent.run(task)
+            
+            # Save the agent log / report to a text file for debugging
+            try:
+                log_filename = f"trend_analyst_log_turn_{turn_id}.txt"
+                log_filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), log_filename)
+                with open(log_filepath, "w", encoding="utf-8") as f:
+                    f.write(f"--- TREND ANALYST LOG (TURN {turn_id}) ---\n\n")
+                    f.write(result.text)
+                
+                log(
+                    "TRACK",
+                    f"Saved trend analyst log to {log_filename}",
+                    event="trend_analyst.log.saved",
+                    component="trend_analyst.trend_analyst_agent",
+                    turn_id=turn_id,
+                )
+            except Exception as e_log:
+                log(
+                    "ERROR",
+                    f"Failed to save trend analyst log: {e_log}",
+                    event="trend_analyst.log.save_failed",
+                    component="trend_analyst.trend_analyst_agent",
+                    turn_id=turn_id,
+                    error_type=type(e_log).__name__,
+                )
+                
             return result.text
         except Exception as e:
             log(

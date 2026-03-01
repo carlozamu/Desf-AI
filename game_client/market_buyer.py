@@ -25,13 +25,14 @@ async def buy_missing_ingredients(
     target_recipes: list[dict[str, Any]],
     ingredient_bids: dict[str, int],
     default_bid: int = 20,
-) -> dict[str, int]:
+    max_total_spend: int | None = None,
+) -> tuple[dict[str, int], int]:
     """Buy ingredients missing from inventory that are needed by target_recipes.
 
-    Returns a dict of {ingredient_name: qty_bought}.
+    Returns (bought_map, total_spend).
     """
     if not target_recipes:
-        return {}
+        return {}, 0
 
     # 1. Compute required ingredients (1 portion per recipe)
     required: dict[str, int] = {}
@@ -40,7 +41,7 @@ async def buy_missing_ingredients(
             required[ing] = required.get(ing, 0) + qty
 
     if not required:
-        return {}
+        return {}, 0
 
     # 2. Fetch current inventory
     restaurant_info = await api_client.get_restaurant_info()
@@ -59,7 +60,7 @@ async def buy_missing_ingredients(
 
     if not missing:
         log("MARKET", "Nessun ingrediente mancante", event="market.buy.skipped.complete")
-        return {}
+        return {}, 0
 
     log(
         "MARKET",
@@ -85,6 +86,7 @@ async def buy_missing_ingredients(
 
     # 5. Buy missing ingredients
     bought: dict[str, int] = {}
+    total_spend = 0
     for ing, qty_needed in missing.items():
         ing_lower = ing.lower()
         entries = sell_entries.get(ing_lower, [])
@@ -118,12 +120,34 @@ async def buy_missing_ingredients(
             if not entry_id:
                 continue
 
+            entry_qty_raw = entry.get("quantity", 1)
+            try:
+                entry_qty = max(1, int(entry_qty_raw))
+            except (TypeError, ValueError):
+                entry_qty = 1
+
+            projected_cost = int(round(entry_price * entry_qty))
+            if max_total_spend is not None and max_total_spend >= 0:
+                if total_spend + projected_cost > int(max_total_spend):
+                    log(
+                        "MARKET",
+                        f"Budget mercato raggiunto: skip '{ing}' entry {entry_id}",
+                        event="market.buy.budget_exceeded",
+                        ingredient=ing,
+                        entry_id=str(entry_id),
+                        projected_cost=projected_cost,
+                        total_spend=total_spend,
+                        budget_cap=int(max_total_spend),
+                    )
+                    continue
+
             result = await mcp_gateway.call_tool(
                 "execute_transaction", {"market_entry_id": str(entry_id)}
             )
             if result is not None:
-                qty_bought = int(entry.get("quantity", 1))
+                qty_bought = entry_qty
                 bought[ing] = bought.get(ing, 0) + qty_bought
+                total_spend += projected_cost
                 log(
                     "MARKET",
                     f"Acquistato '{ing}' x{qty_bought} a {entry_price:.1f}cr (entry {entry_id})",
@@ -132,6 +156,7 @@ async def buy_missing_ingredients(
                     quantity=qty_bought,
                     price=entry_price,
                     entry_id=str(entry_id),
+                    total_spend=total_spend,
                 )
                 if bought[ing] >= qty_needed:
                     break
@@ -145,4 +170,11 @@ async def buy_missing_ingredients(
                     ingredient=ing,
                 )
 
-    return bought
+    if total_spend > 0:
+        log(
+            "MARKET",
+            f"Spesa totale acquisti mercato: {total_spend}cr",
+            event="market.buy.total_spend",
+            total_spend=total_spend,
+        )
+    return bought, total_spend

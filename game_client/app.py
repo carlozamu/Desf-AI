@@ -109,4 +109,20 @@ async def main() -> None:
         team_id=config.team_id,
         base_url=config.base_url,
     )
+    log(
+        "INIT",
+        (
+            "Config caricata: "
+            f"turn_spend_cap={config.turn_spend_cap}cr, "
+            f"bid_range={config.min_ingredient_bid}-{config.max_ingredient_bid}, "
+            f"max_target_recipes={config.max_target_recipes}, "
+            f"max_menu_items={config.max_menu_items}"
+        ),
+        event="app.config.loaded",
+        turn_spend_cap=config.turn_spend_cap,
+        min_ingredient_bid=config.min_ingredient_bid,
+        max_ingredient_bid=config.max_ingredient_bid,
+        max_target_recipes=config.max_target_recipes,
+        max_menu_items=config.max_menu_items,
+    )
     await listen_forever(config=config, dispatch_event_fn=event_router.dispatch_event)

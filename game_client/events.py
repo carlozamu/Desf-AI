@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+import os
+from collections import defaultdict
+import re
 from typing import Any, Awaitable, Callable
 
 from game_client.config import ClientConfig
 from game_client.logging_utils import log, set_log_context
 from game_client.state import GameState
 from game_client.strategy import (
-    _dish_has_intolerance_conflict,
     get_client_id_from_event,
     pick_dish_for_order,
     resolve_client_id_from_meals,
+)
+
+_AUCTION_PURCHASE_LINE_RE = re.compile(
+    r"^Restaurant\s+(?P<restaurant_id>\d+)\s+"
+    r"try to buy:(?P<requested_qty>\d+)\s+(?P<ingredient>.+?)\s+"
+    r"at single price of:\s*(?P<unit_price>-?\d+)\s+"
+    r"result:Bought\s+(?P<bought_qty>\d+)\s+.+?\s+for\s+(?P<total_price>-?\d+)\s*$",
+    re.IGNORECASE,
 )
 
 
@@ -28,6 +38,11 @@ class EventRouter:
         self.api_client = api_client
         self.mcp_gateway = mcp_gateway
         self.phase_runner = phase_runner
+        self.pending_orders: dict[str, list[dict[str, str]]] = defaultdict(list)
+        self.turn_purchases: list[dict[str, Any]] = []
+        self.turn_orders_log: list[dict[str, Any]] = []
+        self._seen_purchase_lines: set[str] = set()
+
         self.event_handlers: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {
             "game_started": self.game_started,
             "game_phase_changed": self.game_phase_changed,
@@ -36,11 +51,320 @@ class EventRouter:
             "preparation_complete": self.preparation_complete,
             "message": self.message,
             "new_message": self.new_message,
+            "heartbeat": self.heartbeat,
         }
+
+    def _update_serving_log(self) -> None:
+        turn_id = self.state.current_turn_id
+        if not turn_id:
+            return
+            
+        log_filename = f"serving_log_turn_{turn_id}.txt"
+        log_filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", log_filename)
+        
+        try:
+            with open(log_filepath, "w", encoding="utf-8") as f:
+                f.write(f"--- SERVING LOG (TURN {turn_id}) ---\n\n")
+                if not self.turn_orders_log:
+                    f.write("Nessun ordine ricevuto finora.\n")
+                else:
+                    total_revenue = 0
+                    delivered_orders = []
+                    
+                    for info in self.turn_orders_log:
+                        client_name = info.get("client_name", "Sconosciuto")
+                        dish_name = info.get("dish_name", "Nessuno")
+                        status = info.get("status", "PENDING")
+                        reason = info.get("reason", "")
+                        price = info.get("price", 0)
+                        
+                        line = f"Cliente: {client_name:<20} | Piatto: {dish_name:<40} | Stato: {status:<10}"
+                        if status == "DELIVERED":
+                            delivered_orders.append((client_name, dish_name, price))
+                            total_revenue += price
+                            if price > 0:
+                                line += f" | Incasso: {price}cr"
+                        if reason:
+                            line += f" | Dettaglio: {reason}"
+                        f.write(line + "\n")
+                        
+                    f.write("\n--- REPORT VENDITE DEL TURNO ---\n")
+                    if not delivered_orders:
+                        f.write("Nessun ordine consegnato in questo turno.\n")
+                    else:
+                        for client_name, dish_name, price in delivered_orders:
+                            f.write(f"- {dish_name} servito a {client_name}: +{price}cr\n")
+                        f.write(f"\nTOTALE INCASSO TURNO: {total_revenue}cr\n")
+        except Exception:
+            pass
+
+    def _add_order_log(self, client_name: str, order_text: str) -> None:
+        self.turn_orders_log.append({
+            "client_name": client_name,
+            "order_text": order_text,
+            "dish_name": "Nessun piatto associato",
+            "status": "PENDING",
+            "reason": "",
+            "price": 0
+        })
+        self._update_serving_log()
+
+    def _update_order_log(self, client_name: str, status: str, dish_name: str = "", reason: str = "", price: int = 0) -> None:
+        for order in reversed(self.turn_orders_log):
+            if order["client_name"] == client_name:
+                if status:
+                    order["status"] = status
+                if dish_name:
+                    order["dish_name"] = dish_name
+                if reason:
+                    order["reason"] = reason
+                if price > 0:
+                    order["price"] = price
+                break
+        self._update_serving_log()
+
+    def _reset_turn_purchase_tracking(self) -> None:
+        self.turn_purchases = []
+        self._seen_purchase_lines = set()
+        self.state.auction_spend_total = 0
+
+    def _log_turn_sales_summary(self) -> None:
+        total_revenue = 0
+        delivered_orders = []
+        for info in self.turn_orders_log:
+            if info.get("status") == "DELIVERED":
+                price = info.get("price", 0)
+                delivered_orders.append(f"{info.get('dish_name')} a {info.get('client_name')} (+{price}cr)")
+                total_revenue += price
+                
+        log(
+            "SERVE",
+            f"--- REPORT VENDITE TURNO {self.state.current_turn_id} ---",
+            event="serve.sales.summary_header",
+        )
+        for order_str in delivered_orders:
+            log("SERVE", f"  - {order_str}", event="serve.sales.item")
+        log(
+            "SERVE",
+            f"TOTALE INCASSO TURNO: {total_revenue}cr ({len(delivered_orders)} ordini)",
+            event="serve.sales.summary",
+            delivered_count=len(delivered_orders),
+            total_revenue=total_revenue
+        )
+
+    def _log_turn_purchase_summary(self, *, reason: str) -> None:
+        if not self.turn_purchases:
+            return
+
+        by_ingredient: dict[str, dict[str, Any]] = {}
+        total_qty = 0
+        total_spend = 0
+
+        for row in self.turn_purchases:
+            ingredient = str(row["ingredient"])
+            qty = int(row["bought_qty"])
+            total = int(row["total_price"])
+            unit = int(row["unit_price"])
+            total_qty += qty
+            total_spend += total
+
+            agg = by_ingredient.setdefault(
+                ingredient,
+                {"qty": 0, "total": 0, "unit_prices": set()},
+            )
+            agg["qty"] += qty
+            agg["total"] += total
+            agg["unit_prices"].add(unit)
+
+        log(
+            "BID",
+            f"Riepilogo acquisti ({reason}): {len(self.turn_purchases)} righe, "
+            f"{total_qty} unita, spesa totale {total_spend}cr",
+            event="bid.result.summary",
+            purchases_count=len(self.turn_purchases),
+            total_quantity=total_qty,
+            total_spend=total_spend,
+        )
+
+        for ingredient in sorted(by_ingredient.keys()):
+            agg = by_ingredient[ingredient]
+            qty = int(agg["qty"])
+            total = int(agg["total"])
+            avg = (total / qty) if qty > 0 else 0.0
+            unit_prices = sorted(int(p) for p in agg["unit_prices"])
+            prices_str = ",".join(str(p) for p in unit_prices)
+            log(
+                "BID",
+                f"  {ingredient}: qty={qty}, prezzi_unitari=[{prices_str}]cr, "
+                f"media={avg:.2f}cr, totale={total}cr",
+                event="bid.result.summary.item",
+                ingredient=ingredient,
+                quantity=qty,
+                unit_prices=unit_prices,
+                avg_unit_price=round(avg, 2),
+                total_spend=total,
+            )
+
+    def _capture_own_purchases_from_message(self, *, sender: Any, payload: Any) -> None:
+        if str(sender).strip().lower() != "server":
+            return
+
+        team_id = str(self.config.team_id).strip()
+        if not team_id:
+            return
+
+        text = str(payload or "")
+        if "try to buy:" not in text:
+            return
+
+        new_rows: list[dict[str, Any]] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line or line in self._seen_purchase_lines:
+                continue
+
+            match = _AUCTION_PURCHASE_LINE_RE.match(line)
+            if not match:
+                continue
+
+            self._seen_purchase_lines.add(line)
+            if match.group("restaurant_id") != team_id:
+                continue
+
+            row = {
+                "ingredient": match.group("ingredient").strip(),
+                "requested_qty": int(match.group("requested_qty")),
+                "bought_qty": int(match.group("bought_qty")),
+                "unit_price": int(match.group("unit_price")),
+                "total_price": int(match.group("total_price")),
+            }
+            self.turn_purchases.append(row)
+            self.state.auction_spend_total += int(row["total_price"])
+            new_rows.append(row)
+
+        if not new_rows:
+            return
+
+        for row in new_rows:
+            log(
+                "BID",
+                f"Acquisto: {row['ingredient']} x{row['bought_qty']} @ {row['unit_price']}cr "
+                f"(tot {row['total_price']}cr)",
+                event="bid.result.purchase",
+                ingredient=row["ingredient"],
+                quantity=row["bought_qty"],
+                unit_price=row["unit_price"],
+                total_price=row["total_price"],
+            )
+
+        self._log_turn_purchase_summary(reason="results_update")
+
+    def _dish_price(self, dish_name: str) -> int | None:
+        for item in self.state.active_menu:
+            name = str(item.get("name", "")).strip()
+            if name == dish_name:
+                try:
+                    return int(item.get("price", 0))
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    def _log_ready_dishes_summary(self, reason: str) -> None:
+        ready: list[tuple[str, int]] = []
+        for item in self.state.active_menu:
+            dish_name = str(item.get("name", "")).strip()
+            if not dish_name:
+                continue
+            if self.state.dishes_ready.get(dish_name) is not True:
+                continue
+            try:
+                price = int(item.get("price", 0))
+            except (TypeError, ValueError):
+                price = 0
+            ready.append((dish_name, price))
+
+        if not ready:
+            log(
+                "SERVE",
+                f"Piatti pronti ({reason}): nessuno",
+                event="dish.ready.summary",
+                ready_count=0,
+            )
+            return
+
+        summary = " | ".join(f"{dish} ({price}cr)" for dish, price in ready)
+        log(
+            "SERVE",
+            f"Piatti pronti ({reason}): {summary}",
+            event="dish.ready.summary",
+            ready_count=len(ready),
+            ready_dishes=[{"name": dish, "price": price} for dish, price in ready],
+        )
+
+    async def _prepare_on_demand(self, dish_name: str, *, reason: str) -> None:
+        if dish_name in self.state.dishes_in_preparation:
+            return
+
+        response = await self.mcp_gateway.call_tool("prepare_dish", {"dish_name": dish_name})
+        if response is None:
+            log(
+                "SERVE",
+                f"Preparazione '{dish_name}' fallita",
+                event="dish.prepare.failed",
+                level="ERROR",
+                dish_name=dish_name,
+                reason=reason,
+            )
+            return
+
+        self.state.dishes_in_preparation.add(dish_name)
+        self.state.dishes_preparing += 1
+        self.state.dishes_ready[dish_name] = False
+        log(
+            "SERVE",
+            f"'{dish_name}' messo in preparazione",
+            event="dish.prepare.submitted",
+            dish_name=dish_name,
+            reason=reason,
+        )
+
+    async def _serve_ready_dish(self, *, dish_name: str, client_id: str, client_name: str) -> bool:
+        response = await self.mcp_gateway.call_tool("serve_dish", {"dish_name": dish_name, "client_id": client_id})
+        if response is None:
+            self._update_order_log(client_name, "FAILED", dish_name=dish_name, reason="Errore chiamata MCP serve_dish")
+            log(
+                "SERVE",
+                f"Servizio fallito per '{dish_name}' verso '{client_name}'",
+                event="serve.submit.failed",
+                level="ERROR",
+                client_id=client_id,
+                dish_name=dish_name,
+                client_name=client_name,
+            )
+            return False
+
+        self.state.dishes_ready[dish_name] = False
+        dish_price = self._dish_price(dish_name) or 0
+        self._update_order_log(client_name, "DELIVERED", dish_name=dish_name, price=dish_price)
+        log(
+            "SERVE",
+            f"Servito '{dish_name}' a '{client_name}' ({self._dish_price(dish_name) or 0}cr)",
+            event="serve.submitted",
+            client_id=client_id,
+            dish_name=dish_name,
+            client_name=client_name,
+            dish_price=self._dish_price(dish_name),
+        )
+        self._log_ready_dishes_summary("post-serve")
+        return True
 
     async def game_started(self, data: dict[str, Any]) -> None:
         turn_id = int(data.get("turn_id", self.state.current_turn_id or 0) or 0)
         self.state.reset_for_game_start(turn_id)
+        self.pending_orders.clear()
+        self.turn_orders_log.clear()
+        self._update_serving_log()
+        self._reset_turn_purchase_tracking()
         set_log_context(turn_id=self.state.current_turn_id, phase=self.state.current_phase)
         log(
             "EVENT",
@@ -71,9 +395,20 @@ class EventRouter:
             "stopped": self.phase_runner.end_turn,
         }
 
+        if phase == "closed_bid":
+            self._reset_turn_purchase_tracking()
+
         handler = handlers.get(phase)
         if handler:
             await handler()
+            if phase == "waiting":
+                self.pending_orders.clear()
+                self.turn_orders_log.clear()
+                self._update_serving_log()
+                self._log_turn_purchase_summary(reason="waiting_start")
+            elif phase == "stopped":
+                self._log_turn_purchase_summary(reason="turn_end")
+                self._log_turn_sales_summary()
         else:
             log(
                 "PHASE",
@@ -84,12 +419,16 @@ class EventRouter:
 
     async def game_reset(self, data: dict[str, Any]) -> None:
         self.state.current_phase = "stopped"
+        self.pending_orders.clear()
+        self.turn_orders_log.clear()
+        self._reset_turn_purchase_tracking()
         set_log_context(phase=self.state.current_phase)
         log("EVENT", "Partita resettata", event="event.game_reset", event_data=data)
 
     async def client_spawned(self, data: dict[str, Any]) -> None:
         client_name = str(data.get("clientName", data.get("name", "")))
         order_text = str(data.get("orderText", data.get("order", "")))
+        self._add_order_log(client_name, order_text)
         log(
             "SERVE",
             f"Cliente '{client_name}' ordina: {order_text}",
@@ -103,6 +442,7 @@ class EventRouter:
         )
         if not dish_name:
             if intolerances:
+                self._update_order_log(client_name, "FAILED", reason=f"Intolleranza rilevata: {intolerances}")
                 log(
                     "SERVE",
                     f"Intolleranza rilevata per '{client_name}': {intolerances} — piatto non servito",
@@ -113,6 +453,7 @@ class EventRouter:
                     intolerances=intolerances,
                 )
             else:
+                self._update_order_log(client_name, "FAILED", reason="Nessun piatto corrispondente trovato nel menu")
                 log(
                     "SERVE",
                     f"Nessun piatto per '{client_name}' (cerca: {order_text})",
@@ -121,39 +462,6 @@ class EventRouter:
                     order_text=order_text,
                 )
             return
-
-        if self.state.dishes_ready.get(dish_name) is not True:
-            log(
-                "SERVE",
-                f"Piatto '{dish_name}' non ancora pronto per '{client_name}'",
-                event="serve.request.dish_not_ready",
-                dish_name=dish_name,
-                client_name=client_name,
-            )
-            # Try to find a ready alternative on the menu
-            alternative = None
-            for alt_item in self.state.active_menu:
-                alt_name = str(alt_item.get("name", "")).strip()
-                if not alt_name or alt_name == dish_name:
-                    continue
-                if self.state.dishes_ready.get(alt_name) is not True:
-                    continue
-                if not _dish_has_intolerance_conflict(alt_name, intolerances, self.state.all_recipes):
-                    alternative = alt_name
-                    break
-
-            if not alternative:
-                return
-
-            log(
-                "SERVE",
-                f"Alternativa trovata: '{alternative}' per '{client_name}' (richiesto: '{dish_name}')",
-                event="serve.request.alternative_found",
-                original_dish=dish_name,
-                alternative_dish=alternative,
-                client_name=client_name,
-            )
-            dish_name = alternative
 
         client_id = get_client_id_from_event(data)
         if not client_id:
@@ -175,6 +483,7 @@ class EventRouter:
             )
 
         if not client_id:
+            self._update_order_log(client_name, "FAILED", dish_name=dish_name, reason="Impossibile risolvere ID cliente")
             log(
                 "SERVE",
                 f"Impossibile identificare il cliente '{client_name}' (ordine: {order_text})",
@@ -193,45 +502,32 @@ class EventRouter:
             client_id=client_id,
             dish_name=dish_name,
         )
-        await self.mcp_gateway.call_tool("serve_dish", {"dish_name": dish_name, "client_id": client_id})
-        self.state.dishes_ready[dish_name] = False
+        if self.state.dishes_ready.get(dish_name) is True:
+            await self._serve_ready_dish(
+                dish_name=dish_name,
+                client_id=client_id,
+                client_name=client_name,
+            )
+            return
+
+        self.pending_orders[dish_name].append(
+            {
+                "client_id": client_id,
+                "client_name": client_name,
+            }
+        )
+        queue_len = len(self.pending_orders[dish_name])
+        self._update_order_log(client_name, "PENDING", dish_name=dish_name)
         log(
             "SERVE",
-            f"Servito '{dish_name}' a '{client_name}'",
-            event="serve.submitted",
-            client_id=client_id,
+            f"Piatto '{dish_name}' non pronto: cliente in coda ({queue_len})",
+            event="serve.request.queued",
             dish_name=dish_name,
             client_name=client_name,
+            queue_length=queue_len,
+            dish_price=self._dish_price(dish_name),
         )
-
-        # Rimettiamo in preparazione il piatto servito per rifornire la linea.
-        restock = await self.mcp_gateway.call_tool("prepare_dish", {"dish_name": dish_name})
-        if restock is None:
-            log(
-                "SERVE",
-                f"'{dish_name}' non può essere ripreparato (ingredienti esauriti)",
-                event="dish.prepare.out_of_stock",
-                level="WARN",
-                dish_name=dish_name,
-            )
-        else:
-            self.state.dishes_preparing += 1
-            log(
-                "SERVE",
-                f"'{dish_name}' rimesso in preparazione",
-                event="dish.prepare.submitted",
-                dish_name=dish_name,
-            )
-
-        # Chiudi SOLO se nessun piatto è pronto E nessuno è in preparazione.
-        any_ready = any(self.state.dishes_ready.get(str(i.get("name", "")).strip()) for i in self.state.active_menu)
-        if not any_ready and self.state.dishes_preparing == 0:
-            log(
-                "SERVE",
-                "Tutto venduto — chiusura ristorante",
-                event="restaurant.sold_out",
-            )
-            await self.mcp_gateway.call_tool("update_restaurant_is_open", {"is_open": False})
+        await self._prepare_on_demand(dish_name, reason="client_request")
 
     async def preparation_complete(self, data: dict[str, Any]) -> None:
         dish_name = str(data.get("dish", "")).strip()
@@ -239,12 +535,37 @@ class EventRouter:
             return
 
         self.state.dishes_ready[dish_name] = True
+        self.state.dishes_in_preparation.discard(dish_name)
         self.state.dishes_preparing = max(0, self.state.dishes_preparing - 1)
         log("SERVE", f"Piatto '{dish_name}' pronto ✓", event="dish.prepare.completed", dish_name=dish_name)
+        self._log_ready_dishes_summary("post-preparation")
+
+        queue = self.pending_orders.get(dish_name) or []
+        if not queue:
+            return
+
+        next_order = queue[0]
+        served = await self._serve_ready_dish(
+            dish_name=dish_name,
+            client_id=next_order["client_id"],
+            client_name=next_order["client_name"],
+        )
+        if served:
+            queue.pop(0)
+            if not queue:
+                self.pending_orders.pop(dish_name, None)
+
+        if self.pending_orders.get(dish_name):
+            await self._prepare_on_demand(dish_name, reason="queued_client")
+
+    async def heartbeat(self, data: dict[str, Any]) -> None:
+        _ = data
+        return
 
     async def message(self, data: dict[str, Any]) -> None:
         sender = data.get("sender")
         payload = data.get("payload")
+        self._capture_own_purchases_from_message(sender=sender, payload=payload)
         log("MSG", f"from={sender} payload={payload}", event="message.received", sender=sender)
 
     async def new_message(self, data: dict[str, Any]) -> None:
@@ -253,6 +574,10 @@ class EventRouter:
         log("DM", f"from={sender_name}: {text}", event="message.direct.received", sender=sender_name)
 
     async def dispatch_event(self, event_type: str, event_data: dict[str, Any]) -> None:
+        if event_type == "heartbeat":
+            # Avoid noisy warnings and keep the current phase context unchanged.
+            return
+
         handler = self.event_handlers.get(event_type)
         if not handler:
             log(

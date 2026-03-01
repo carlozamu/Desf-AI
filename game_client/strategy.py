@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 import re
 from typing import Any, Awaitable, Callable
 
@@ -11,6 +12,7 @@ _REQUEST_PATTERN = re.compile(
 )
 
 _INTOLERANCE_SEP = re.compile(r"[,\s]+and\s+|[,\s]+", re.IGNORECASE)
+_TOKEN_SPLIT_RE = re.compile(r"[^a-z0-9]+", re.IGNORECASE)
 
 
 def normalize_order_text(text: str) -> tuple[str, list[str]]:
@@ -210,6 +212,32 @@ def _dish_has_intolerance_conflict(
     return False
 
 
+def _tokenize_for_match(text: str) -> set[str]:
+    normalized = str(text or "").strip().lower()
+    if not normalized:
+        return set()
+    return {t for t in _TOKEN_SPLIT_RE.split(normalized) if t}
+
+
+def _dish_match_score(order_query: str, dish_name: str) -> float:
+    order_norm = str(order_query or "").strip().lower()
+    dish_norm = str(dish_name or "").strip().lower()
+    if not order_norm or not dish_norm:
+        return 0.0
+
+    if dish_norm in order_norm or order_norm in dish_norm:
+        return 1.0
+
+    order_tokens = _tokenize_for_match(order_norm)
+    dish_tokens = _tokenize_for_match(dish_norm)
+    if not order_tokens or not dish_tokens:
+        return 0.0
+
+    overlap = len(order_tokens & dish_tokens) / max(1, len(dish_tokens))
+    ratio = difflib.SequenceMatcher(None, order_norm, dish_norm).ratio()
+    return max(overlap, (overlap * 0.6) + (ratio * 0.4))
+
+
 def pick_dish_for_order(
     order_text: str,
     active_menu: list[dict[str, Any]],
@@ -225,15 +253,29 @@ def pick_dish_for_order(
         return None, intolerances
 
     all_recipes = recipes or []
+    ranked: list[tuple[float, str]] = []
 
     for item in active_menu:
         dish_name = str(item.get("name", "")).strip()
         if not dish_name:
             continue
-        if dish_name.lower() not in dish_query:
+        score = _dish_match_score(dish_query, dish_name)
+        if score <= 0:
             continue
+        ranked.append((score, dish_name))
+
+    if not ranked:
+        return None, intolerances
+
+    ranked.sort(key=lambda row: row[0], reverse=True)
+    best_score = ranked[0][0]
+    # Require a minimum confidence unless there is a very clear best match.
+    if best_score < 0.45:
+        return None, intolerances
+
+    for _, dish_name in ranked:
         if _dish_has_intolerance_conflict(dish_name, intolerances, all_recipes):
-            return None, intolerances
+            continue
         return dish_name, intolerances
 
     return None, intolerances

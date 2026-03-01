@@ -1,16 +1,16 @@
-🤖 Inizio calcolo prezzi per il turno 49 (storia=5 run)...
-📝 Prompt inviato: Calculate the optimal bid prices for all items for turn 49. Use get_recent_bids() to load the last 5 historical runs — do NOT fetch individual turns by ID.
-[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:32:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m STARTING AGENT [0m
-[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:32:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m1[0m[38;5;135m --- [0m
+🤖 Inizio calcolo prezzi per il turno 50 (storia=5 run)...
+📝 Prompt inviato: Calculate the optimal bid prices for all items for turn 50. Use get_recent_bids() to load the last 5 historical runs — do NOT fetch individual turns by ID.
+[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:43:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m STARTING AGENT [0m
+[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:43:02[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m1[0m[38;5;135m --- [0m
 [1m<[0m[1;38;5;135mprice_analyst_expert[0m[1m>[0m
 [38;5;135m╭─[0m[38;5;135m────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m TOOL GET_RECENT_BIDS RESULT [0m[38;5;135m─────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m─╮[0m
 [38;5;135m│[0m {"message": "No bid history found in Firebase."}                                                                                                                                               [38;5;135m│[0m
 [38;5;135m╰─[0m[38;5;135m args: {} [0m[38;5;135m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m─╯[0m
-[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:32:03[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m2[0m[38;5;135m --- [0m
+[1;37m2026[0m[37m-[0m[1;37m03[0m[37m-[0m[1;37m01[0m[37m [0m[1;37m03:43:05[0m [1;38;5;135m<[0m[1;38;5;135mprice_analyst_expert[0m[1;38;5;135m>[0m[38;5;135m --- STEP [0m[1;38;5;135m2[0m[38;5;135m --- [0m
 [1m<[0m[1;38;5;135mprice_analyst_expert[0m[1m>[0m
 [38;5;135m╭─[0m[38;5;135m────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m FINAL ANSWER [0m[38;5;135m────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;135m─╮[0m
 [38;5;135m│[0m {}                                                                                                                                                                                             [38;5;135m│[0m
 [38;5;135m╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 ✅ Prezzi generati con successo: {}
-💾 Prezzi salvati con successo su Firebase in runs/turn_49/bids_prices.
+💾 Prezzi salvati con successo su Firebase in runs/turn_50/bids_prices.

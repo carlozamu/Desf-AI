@@ -1,0 +1,74 @@
+--- SERVING LOG (TURN 61) ---
+
+Cliente: Aria Novae           | Piatto: Sinfonia Cosmica di Mare e Stelle        | Stato: DELIVERED  | Incasso: 210cr
+Cliente: David                | Piatto: Risotto Cosmico Multiversale             | Stato: DELIVERED  | Incasso: 54cr
+Cliente: Mara Voss            | Piatto: Eclissi Quantica: Viaggio nei Reami del Gusto | Stato: DELIVERED  | Incasso: 138cr
+Cliente: Samir Wick           | Piatto: Etereo Crepuscolare                      | Stato: DELIVERED  | Incasso: 62cr
+Cliente: Iris Hale            | Piatto: Cosmologia Terrestre: Viaggio in Otto Dimensioni | Stato: PENDING   
+Cliente: Jaro Nix             | Piatto: Cosmic Synchrony: Il Destino di Pulsar   | Stato: DELIVERED  | Incasso: 71cr
+Cliente: Taro Nix             | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Intolleranza rilevata: ['farina', 'di', 'nettuno']
+Cliente: Valen Kestrel        | Piatto: La Voce del Vento                        | Stato: DELIVERED  | Incasso: 62cr
+Cliente: Nira Holt            | Piatto: Galassia Risvegliata                     | Stato: DELIVERED  | Incasso: 106cr
+Cliente: Felix Hale           | Piatto: Sinfonia Cosmologica                     | Stato: DELIVERED  | Incasso: 74cr
+Cliente: Darek Rune           | Piatto: Galassia di Sogni Cosmogastronomici      | Stato: DELIVERED  | Incasso: 106cr
+Cliente: Vera Knoll           | Piatto: Portale di Sapori Arcani                 | Stato: PENDING   
+Cliente: Kell Arden           | Piatto: Eclissi Quantica: Viaggio nei Reami del Gusto | Stato: PENDING   
+Cliente: Jarek Nadir          | Piatto: Cosmic Serenade                          | Stato: PENDING   
+Cliente: Uma                  | Piatto: La Voce del Vento                        | Stato: PENDING   
+Cliente: Cira Vale            | Piatto: Pioggia di Dimensioni Galattiche         | Stato: PENDING   
+Cliente: Silas Mire           | Piatto: La Voce del Vento                        | Stato: PENDING   
+Cliente: Vela Stone           | Piatto: Galassia Risvegliata                     | Stato: PENDING   
+Cliente: Valen Voss           | Piatto: Dimensioni del Mare Stellato             | Stato: PENDING   
+Cliente: Valen Voss           | Piatto: Cosmofantasia di Terra e Mare nel Vortice delle Stelle | Stato: PENDING   
+Cliente: Alaric Cline         | Piatto: Sinfonia del Cosmo                       | Stato: DELIVERED  | Incasso: 103cr
+Cliente: Ivo Tern             | Piatto: Pizza Luca                               | Stato: PENDING   
+Cliente: Sari Holt            | Piatto: Lumière Cosmica                          | Stato: DELIVERED  | Incasso: 99cr
+Cliente: Mira Sol             | Piatto: Nebulosa Galattica                       | Stato: DELIVERED  | Incasso: 31cr
+Cliente: Olia Vex             | Piatto: Lumière Cosmica                          | Stato: DELIVERED  | Incasso: 99cr
+Cliente: Uma                  | Piatto: Pizza Fra                                | Stato: PENDING   
+Cliente: Gita Crest           | Piatto: Rintocchi del Cosmo                      | Stato: DELIVERED  | Incasso: 47cr
+Cliente: Leona Wilder         | Piatto: Porta Celestiale alle Stelle             | Stato: DELIVERED  | Incasso: 114cr
+Cliente: Giora Oris           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Intolleranza rilevata: ['farina', 'di', 'nettuno']
+Cliente: Milo Trask           | Piatto: Etereo Crepuscolare                      | Stato: PENDING   
+Cliente: Tarin Flux           | Piatto: Danza Luminosa del Multiverso            | Stato: PENDING   
+Cliente: Alaric Cline         | Piatto: Creazione Celestiale: L'Alba del Cosmo   | Stato: PENDING   
+Cliente: Dario Kest           | Piatto: Risveglio Cosmico: Una Sinfonia di Sapori Universali | Stato: PENDING   
+Cliente: Uma Lumen            | Piatto: Cosmic Serenade                          | Stato: PENDING   
+Cliente: Zenoa Pike           | Piatto: Etereo Crepuscolare                      | Stato: PENDING   
+Cliente: Arel Sorn            | Piatto: Entropia Eterna                          | Stato: PENDING   
+Cliente: Mara Orren           | Piatto: Cosmos Culinary Symphony                 | Stato: PENDING   
+Cliente: Yorin Thorne         | Piatto: Essenze dell'Infinito                    | Stato: PENDING   
+Cliente: Uma Lumen            | Piatto: Galassia di Sapori Eterei                | Stato: PENDING   
+Cliente: Pia Solen            | Piatto: Galassia di Sapori Eterei                | Stato: PENDING   
+Cliente: Zoe                  | Piatto: La Voce del Vento                        | Stato: PENDING   
+Cliente: Aisha Aster          | Piatto: Sinfonia Cosmica alla Szechuan           | Stato: PENDING   
+Cliente: Zara Vale            | Piatto: Lumière Cosmica                          | Stato: PENDING   
+Cliente: Orik Senn            | Piatto: Galassia Risvegliata                     | Stato: PENDING   
+Cliente: Haro Vail            | Piatto: Portale Interdimensionale di Sapori      | Stato: PENDING   
+Cliente: Zeno Ion             | Piatto: Sinfonia Quantica dell'Oceano Interstellare | Stato: PENDING   
+Cliente: Alina Warden         | Piatto: Pioggia di Dimensioni Galattiche         | Stato: PENDING   
+Cliente: Elior Mirk           | Piatto: Sinfonia Cosmica alla Szechuan           | Stato: PENDING   
+Cliente: Odin Xander          | Piatto: Danza Luminosa del Multiverso            | Stato: PENDING   
+Cliente: Felix Hale           | Piatto: Cosmic Serenade                          | Stato: PENDING   
+Cliente: Eira Reeve           | Piatto: Sinfonia Quantica dell'Oceano Interstellare | Stato: PENDING   
+Cliente: Wren Xander          | Piatto: Cosmic Synchrony: Il Destino di Pulsar   | Stato: PENDING   
+Cliente: Juno Vel             | Piatto: Sinfonia del Cosmo                       | Stato: PENDING   
+
+--- REPORT VENDITE DEL TURNO ---
+- Sinfonia Cosmica di Mare e Stelle servito a Aria Novae: +210cr
+- Risotto Cosmico Multiversale servito a David: +54cr
+- Eclissi Quantica: Viaggio nei Reami del Gusto servito a Mara Voss: +138cr
+- Etereo Crepuscolare servito a Samir Wick: +62cr
+- Cosmic Synchrony: Il Destino di Pulsar servito a Jaro Nix: +71cr
+- La Voce del Vento servito a Valen Kestrel: +62cr
+- Galassia Risvegliata servito a Nira Holt: +106cr
+- Sinfonia Cosmologica servito a Felix Hale: +74cr
+- Galassia di Sogni Cosmogastronomici servito a Darek Rune: +106cr
+- Sinfonia del Cosmo servito a Alaric Cline: +103cr
+- Lumière Cosmica servito a Sari Holt: +99cr
+- Nebulosa Galattica servito a Mira Sol: +31cr
+- Lumière Cosmica servito a Olia Vex: +99cr
+- Rintocchi del Cosmo servito a Gita Crest: +47cr
+- Porta Celestiale alle Stelle servito a Leona Wilder: +114cr
+
+TOTALE INCASSO TURNO: 1376cr
