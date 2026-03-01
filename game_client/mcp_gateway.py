@@ -15,8 +15,25 @@ class MCPGateway:
         )
 
     async def call_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
+        log(
+            "MCP",
+            f"calling MCP tool {tool_name}",
+            event="mcp.call.started",
+            tool_name=tool_name,
+            payload_summary={"keys": sorted(arguments.keys()), "size": len(arguments)},
+        )
         try:
-            return await self._client.call_tool(tool_name, arguments)
+            response = await self._client.call_tool(tool_name, arguments)
+            log("MCP", f"{tool_name} completed", event="mcp.call.completed", tool_name=tool_name)
+            return response
         except Exception as exc:
-            log("MCP", f"{tool_name} failed: {exc}")
+            log(
+                "MCP",
+                f"{tool_name} failed: {exc}",
+                event="mcp.call.failed",
+                tool_name=tool_name,
+                level="ERROR",
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
             return None

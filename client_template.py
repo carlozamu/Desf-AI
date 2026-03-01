@@ -9,18 +9,18 @@
 
 import asyncio
 import json
-from datetime import datetime
-from typing import Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
-import aiohttp
+if TYPE_CHECKING:
+    import aiohttp
+else:
+    try:
+        import aiohttp  # type: ignore[import-not-found]
+    except ModuleNotFoundError:
+        aiohttp = None  # type: ignore[assignment]
 
-# PRICE ANALYST IMPORT
-from price_analyst.bid_tracker import fetch_and_save_bid_history
-from price_analyst.agent import get_bidding_prices
-
-# TREND ANALYST IMPORT
-from trend_analyst.trend_analyst_agent import a_run_trend_analysis, extract_json_plan
-from trend_analyst.executor import apply_trend_plan
+from game_client.logging_utils import log as structured_log
+from game_client.logging_utils import log_context, new_correlation_id, set_log_context
 
 
 import os
@@ -33,111 +33,139 @@ TEAM_API_KEY = os.getenv("SERVER_API_KEY")
 CRED_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
+set_log_context(run_id=os.getenv("RUN_ID", "main"))
 
 if not TEAM_API_KEY or not TEAM_ID:
     raise SystemExit("Set TEAM_API_KEY and TEAM_ID environment variables")
 
 # GLOBALE VARIAVLE TO STORE the TURNEMENT
 CURRENT_TURN_ID = None
-TREND_ANALYSIS_TASK = None
 
 
-def log(tag: str, message: str) -> None:
-    print(f"[{tag}] {datetime.now()}: {message}")
+def log(tag: str, message: str, **fields: Any) -> None:
+    structured_log(tag, message, **fields)
+
+
+def _safe_turn_id(value: Any) -> int | None:
+    try:
+        turn_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    if turn_id <= 0:
+        return None
+    return turn_id
 
 
 async def game_started(data: dict[str, Any]) -> None:
     global CURRENT_TURN_ID
 
-    turn_id = data.get("turn_id", None)
+    turn_id = _safe_turn_id(data.get("turn_id"))
 
     # Store the turnement id
-    CURRENT_TURN_ID = turn_id 
+    CURRENT_TURN_ID = turn_id
+    set_log_context(turn_id=turn_id, phase="speaking")
 
-    log("EVENT", "game started, turn id: " + str(turn_id))
+    log("EVENT", "game started, turn id: " + str(turn_id), event="event.game_started")
 
 
 async def speaking_phase_started() -> None:
-    log("EVENT", "speaking phase started")
-    
-    global CURRENT_TURN_ID, TREND_ANALYSIS_TASK
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("AGENT", "Starting Trend Analysis in background...")
-        # Previous turns to analyze for context (e.g. last 3 turns)
-        prev_turns = [t for t in range(max(1, CURRENT_TURN_ID-3), CURRENT_TURN_ID)]
-        # We start the analysis task - it will run in parallel with the speaking phase
-        TREND_ANALYSIS_TASK = asyncio.create_task(
-            a_run_trend_analysis(turn_id=CURRENT_TURN_ID, previous_turns=prev_turns)
-        )
-    else:
-        log("AGENT", "Skip Trend Analysis for turn 0.")
+    set_log_context(phase="speaking")
+    log("EVENT", "speaking phase started", event="phase.started")
 
 
 async def closed_bid_phase_started() -> None:
-    log("EVENT", "closed bid phase started")
+    set_log_context(phase="closed_bid")
+    log("EVENT", "closed bid phase started", event="phase.started")
     
-    global CURRENT_TURN_ID, TREND_ANALYSIS_TASK
-    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        # 1. Check if Trend Analysis is ready
-        if TREND_ANALYSIS_TASK:
-            log("AGENT", "Waiting for Trend Analysis report...")
+    global CURRENT_TURN_ID
+    if CURRENT_TURN_ID is not None:
+        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID}...")
+
+        try:
+            from price_analyst.agent import get_bidding_prices
+        except Exception as exc:
+            log(
+                "ERROR",
+                f"price_analyst unavailable: {exc}",
+                event="price_analyst.unavailable",
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
+            return
+        
+        # We run the agent synchronously in a separate thread so we don't block the asyncio event loop
+        prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+        
+        if prices:
+            log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
+            # FUTURE: Submit these bids to the server using the team API
+            
+            # --- START BIDDING PIPELINE ---
+            from bidder.bidder import place_bids_for_turn
+            
             try:
-                report_md = await TREND_ANALYSIS_TASK
-                log("AGENT", "Trend Analysis report received!")
-                
-                # 2. Extract and Apply Plan
-                plan = extract_json_plan(report_md)
-                if plan:
-                    log("AGENT", f"Extracted Strategy: {json.dumps(plan, indent=2)}")
-                    await apply_trend_plan(plan)
-                    log("AGENT", "Trend Strategy applied successfully.")
-                else:
-                    log("WARNING", "No JSON strategy found in Trend Analysis report. Falling back to Price Analyst.")
-                    # Fallback to the old price analyst if trend analyst fails to produce a plan
-                    prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
-                    if prices:
-                        from bidder.bidder import place_bids_for_turn
-                        await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
-            except Exception as e:
-                log("ERROR", f"Trend Analysis execution failed: {e}. Falling back...")
-                # Fallback to Price Analyst on error
-                prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
-                if prices:
-                    from bidder.bidder import place_bids_for_turn
-                    await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
-        else:
-            log("AGENT", "No Trend Analysis task found. Using default Price Analyst.")
-            prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
-            if prices:
-                from bidder.bidder import place_bids_for_turn
+                log("AGENT", f"Placing bids for turn {CURRENT_TURN_ID}...")
                 await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
+                
+                log("AGENT", "Bidding pipeline execution completed.")
+            except Exception as e:
+                log("ERROR", f"Failed to execute bidding pipeline: {e}")
+            # --- END BIDDING PIPELINE ---
     else:
         log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
 
 
 async def waiting_phase_started() -> None:
-    log("EVENT", "waiting phase started")
+    set_log_context(phase="waiting")
+    log("EVENT", "waiting phase started", event="phase.started")
 
     global CURRENT_TURN_ID
-    if CURRENT_TURN_ID != 0:
+    if CURRENT_TURN_ID is not None:
         log("AGENT 4", f"Starting bid history scraping for turn {CURRENT_TURN_ID}...")
+
+        try:
+            from price_analyst.bid_tracker import fetch_and_save_bid_history
+        except Exception as exc:
+            log(
+                "ERROR",
+                f"bid_tracker unavailable: {exc}",
+                event="bid_history.unavailable",
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
+            return
+
+        async def _safe_fetch_bid_history() -> None:
+            try:
+                await fetch_and_save_bid_history(
+                    turn_id=CURRENT_TURN_ID,
+                    api_key=TEAM_API_KEY,
+                    base_url=BASE_URL,
+                    cred_path=CRED_PATH,
+                )
+            except Exception as exc:
+                log(
+                    "ERROR",
+                    f"bid history background task failed: {exc}",
+                    event="bid_history.task.failed",
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+
         # Launch the task in the background without blocking the SSE
-        asyncio.create_task(fetch_and_save_bid_history(
-            turn_id=CURRENT_TURN_ID,
-            api_key=TEAM_API_KEY,
-            base_url=BASE_URL,
-            cred_path=CRED_PATH
-        ))
+        asyncio.create_task(_safe_fetch_bid_history())
     else:
-        log("AGENT 4", "Error: unknown turn_id. Cannot download bids.")
+        log("AGENT 4", "Skip bid history: unknown or invalid turn_id.")
 
 
 async def serving_phase_started() -> None:
-    log("EVENT", "serving phase started")
+    set_log_context(phase="serving")
+    log("EVENT", "serving phase started", event="phase.started")
 
 
 async def end_turn() -> None:
-    log("EVENT", "turn ended")
+    set_log_context(phase="stopped")
+    log("EVENT", "turn ended", event="phase.started")
 
 
 async def client_spawned(data: dict[str, Any]) -> None:
@@ -159,7 +187,13 @@ async def message(data: dict[str, Any]) -> None:
 
 
 async def game_phase_changed(data: dict[str, Any]) -> None:
+    global CURRENT_TURN_ID
+    event_turn_id = _safe_turn_id(data.get("turn_id"))
+    if event_turn_id is not None:
+        CURRENT_TURN_ID = event_turn_id
+
     phase = data.get("phase", "unknown")
+    set_log_context(phase=phase, turn_id=CURRENT_TURN_ID)
     handlers: dict[str, Callable[[], Awaitable[None]]] = {
         "speaking": speaking_phase_started,
         "closed_bid": closed_bid_phase_started,
@@ -221,7 +255,7 @@ async def handle_line(raw_line: bytes) -> None:
     if line.startswith("data:"):
         payload = line[5:].strip()
         if payload == "connected":
-            log("SSE", "connected")
+            log("SSE", "connected", event="sse.connected")
             return
         line = payload
 
@@ -233,21 +267,22 @@ async def handle_line(raw_line: bytes) -> None:
 
     event_type = event_json.get("type", "unknown")
     event_data = event_json.get("data", {})
-    if isinstance(event_data, dict):
-        await dispatch_event(event_type, event_data)
-    else:
-        await dispatch_event(event_type, {"value": event_data})
+    with log_context(correlation_id=new_correlation_id(), event_type=event_type):
+        if isinstance(event_data, dict):
+            await dispatch_event(event_type, event_data)
+        else:
+            await dispatch_event(event_type, {"value": event_data})
 
 
 # DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
 # It owns the SSE HTTP connection lifecycle.
-async def listen_once(session: aiohttp.ClientSession) -> None:
+async def listen_once(session: "aiohttp.ClientSession") -> None:
     url = f"{BASE_URL}/events/{TEAM_ID}"
     headers = {"Accept": "text/event-stream", "x-api-key": TEAM_API_KEY}
 
     async with session.get(url, headers=headers) as response:
         response.raise_for_status()
-        log("SSE", "connection open")
+        log("SSE", "connection open", event="sse.connection.open")
         async for line in response.content:
             await handle_line(line)
 
@@ -255,6 +290,9 @@ async def listen_once(session: aiohttp.ClientSession) -> None:
 # DO NOT EDIT THE CODE BELOW until you are sure what you are doing.
 # It controls script exit behavior when the SSE connection drops.
 async def listen_once_and_exit_on_drop() -> None:
+    if aiohttp is None:
+        raise RuntimeError("aiohttp is required to run client_template SSE listener")
+
     timeout = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=None)
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -267,14 +305,6 @@ async def listen_once_and_exit_on_drop() -> None:
 async def main() -> None:
     log("INIT", f"team={TEAM_ID} base_url={BASE_URL}")
     await listen_once_and_exit_on_drop()
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        log("INIT", "client stopped")
-
 
 
 if __name__ == "__main__":

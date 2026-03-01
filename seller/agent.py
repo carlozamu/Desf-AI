@@ -25,6 +25,7 @@ from dotenv import load_dotenv
 from datapizza.agents import Agent
 from datapizza.clients.openai_like import OpenAILikeClient
 from datapizza.tools import Tool
+from game_client.logging_utils import log, log_context, set_log_context
 
 # ─── Aggiunge la root del progetto al path ────────────────────────────────────
 _HERE = Path(__file__).parent
@@ -197,7 +198,7 @@ def sell_ingredient(ingredient: str, quantity: int, price: float) -> str:
     # ────────────────────────────────────────────────────────────────────────
 
     dry_run = {"dry_run": True, "ingredient": ingredient, "quantity": quantity, "price": price}
-    print(f"[SELLER-DRY] Would sell: {dry_run}")
+    log("SELLER", f"Would sell (dry-run): {dry_run}", event="seller.dry_run.sell")
     return json.dumps(dry_run)
 
 
@@ -276,45 +277,54 @@ async def run_seller_agent(turn_id: int) -> str:
     Esegue l'agente in un thread separato (è sincrono internamente).
     Restituisce il testo di output dell'agente.
     """
-    print(f"[SELLER] 🏪 Starting surplus seller for turn {turn_id}...")
+    set_log_context(turn_id=turn_id, phase="serving")
+    with log_context(component="seller.agent"):
+        log("SELLER", f"Starting surplus seller for turn {turn_id}...", event="seller.started")
 
-    prompt = (
-        f"It is turn {turn_id}. Check the current inventory and menu, "
-        f"identify surplus ingredients (not needed by any menu recipe), "
-        f"and sell them at the bid price."
-    )
+        prompt = (
+            f"It is turn {turn_id}. Check the current inventory and menu, "
+            f"identify surplus ingredients (not needed by any menu recipe), "
+            f"and sell them at the bid price."
+        )
 
-    LOG_FILE = _HERE / "seller_agent_log.txt"
+        LOG_FILE = _HERE / "seller_agent_log.txt"
 
-    def _run():
-        import io
-        from contextlib import redirect_stdout
-        buf = io.StringIO()
-        with redirect_stdout(buf):
-            resp = seller_agent.run(prompt)
-        captured = buf.getvalue()
-        output = resp.text or captured
+        def _run():
+            import io
+            from contextlib import redirect_stdout
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                resp = seller_agent.run(prompt)
+            captured = buf.getvalue()
+            output = resp.text or captured
 
-        # Salva log su file
-        try:
-            with LOG_FILE.open("a", encoding="utf-8") as f:
-                from datetime import datetime
-                f.write(f"\n{'='*60}\n")
-                f.write(f"TURN {turn_id} — {datetime.now().isoformat()}\n")
-                f.write(f"{'='*60}\n")
-                f.write(captured)         # output grezzo della libreria
-                f.write("\n--- AGENT RESPONSE ---\n")
-                f.write(output)
-                f.write("\n")
-            print(f"[SELLER] 📄 Log saved → {LOG_FILE}")
-        except Exception as log_exc:
-            print(f"[SELLER] ⚠️  Could not save log: {log_exc}")
+            # Salva log su file
+            try:
+                with LOG_FILE.open("a", encoding="utf-8") as f:
+                    from datetime import datetime
+                    f.write(f"\n{'='*60}\n")
+                    f.write(f"TURN {turn_id} — {datetime.now().isoformat()}\n")
+                    f.write(f"{'='*60}\n")
+                    f.write(captured)         # output grezzo della libreria
+                    f.write("\n--- AGENT RESPONSE ---\n")
+                    f.write(output)
+                    f.write("\n")
+                log("SELLER", f"Log saved -> {LOG_FILE}", event="seller.log.saved")
+            except Exception as log_exc:
+                log(
+                    "SELLER",
+                    f"Could not save log: {log_exc}",
+                    event="seller.log.save_failed",
+                    level="WARN",
+                    error_type=type(log_exc).__name__,
+                    error_message=str(log_exc),
+                )
 
-        return output
+            return output
 
-    result = await asyncio.to_thread(_run)
-    print(f"[SELLER] ✅ Seller agent completed. Output:\n{result}")
-    return result
+        result = await asyncio.to_thread(_run)
+        log("SELLER", "Seller agent completed", event="seller.completed", output_preview=str(result)[:240])
+        return result
 
 
 if __name__ == "__main__":

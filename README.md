@@ -42,3 +42,62 @@ L'entrypoint resta `client_template.py`, ma la logica è stata separata nel pack
 - `game_client/app.py`: wiring finale delle dipendenze.
 
 Questo mantiene il comportamento del client invariato, riducendo l'accoppiamento rispetto al vecchio file monolitico.
+
+## Trend Analyst Integration
+
+La strategia runtime usa in priorità i valori del Trend Analyst:
+
+- `closed_bid`: se il report contiene il blocco JSON `bids`, il client invia quei `amount/quantity` (niente prezzi hardcoded).
+- `waiting`: se il report contiene il blocco JSON `menu`, il client salva quei `price` nel menu (niente tier fissi).
+
+Fallback:
+
+- Se il JSON del trend è mancante/non valido, il sistema usa il fallback locale.
+- Il fallback pricing locale non usa più i tier hardcoded `2/50/250`: ora è dinamico (`ingredient_cost * 3`, clampato).
+
+## Structured Logging (JSON)
+
+Il runtime emette log strutturati JSON su `stdout` (una riga per evento).
+Campi principali:
+
+- `ts`: timestamp UTC ISO-8601 con millisecondi
+- `level`: `DEBUG | INFO | WARN | ERROR`
+- `event`: nome evento stabile (es. `phase.changed`, `bid.submitted`, `serve.submitted`)
+- `message`: descrizione breve
+- `component`: modulo sorgente
+- `run_id`: identificativo run corrente (se disponibile)
+- `turn_id`: turno corrente (se disponibile)
+- `phase`: fase corrente (`speaking`, `closed_bid`, `waiting`, `serving`, `stopped`)
+- `correlation_id`: ID per correlare eventi dello stesso flusso SSE
+- `legacy_tag`: alias storico compatibile (`BID`, `SERVE`, `MCP`, ...)
+
+Verbosity runtime:
+
+- `LOG_PROFILE=compact` (default): log sintetico, mantiene eventi chiave + warning/error.
+- `LOG_PROFILE=verbose`: log completo (tutti gli eventi).
+- `LOG_LEVEL` opzionale (`DEBUG|INFO|WARN|ERROR`) per soglia livello.
+
+Esempio:
+
+```json
+{"ts":"2026-03-01T10:22:11.123+00:00","level":"INFO","event":"bid.submitted","message":"closed_bid submitted","component":"game_client.phases","run_id":"main","turn_id":12,"phase":"closed_bid","correlation_id":"...","legacy_tag":"BID","bids_count":25}
+```
+
+### Legacy Tag Mapping
+
+- `INIT` -> `app.init`
+- `PHASE` -> `phase.changed`
+- `SSE` -> `sse.lifecycle`
+- `HTTP` -> `http.request`
+- `MCP` -> `mcp.call`
+- `BID` -> `bid.lifecycle`
+- `MENU` -> `menu.lifecycle`
+- `MENU-PRICE` -> `menu.price.calculated`
+- `SERVE` -> `serve.lifecycle`
+- `TRACK` -> `tracker.lifecycle`
+- `SELLER` -> `seller.lifecycle`
+- `STRATEGY` -> `strategy.lifecycle`
+- `MSG` -> `message.received`
+- `DM` -> `dm.received`
+- `ERROR` -> `error`
+- `WARN` -> `warning`

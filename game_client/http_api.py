@@ -21,13 +21,36 @@ class ApiClient:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(url, headers=headers, params=params) as response:
                     if response.status == 200:
-                        return await response.json()
+                        data = await response.json()
+                        log(
+                            "HTTP",
+                            f"GET {endpoint} ok",
+                            event="http.request.completed",
+                            http_endpoint=endpoint,
+                            status_code=200,
+                        )
+                        return data
 
                     text = await response.text()
-                    log("HTTP", f"GET {endpoint} -> {response.status} {text[:180]}")
+                    log(
+                        "HTTP",
+                        f"GET {endpoint} -> {response.status} {text[:180]}",
+                        event="http.request.failed",
+                        level="WARN",
+                        http_endpoint=endpoint,
+                        status_code=response.status,
+                    )
                     return None
         except aiohttp.ClientError as exc:
-            log("HTTP", f"GET {endpoint} failed: {exc}")
+            log(
+                "HTTP",
+                f"GET {endpoint} failed: {exc}",
+                event="http.request.error",
+                level="ERROR",
+                http_endpoint=endpoint,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
             return None
 
     async def get_recipes(self) -> list[dict[str, Any]]:

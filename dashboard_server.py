@@ -13,6 +13,7 @@ from urllib.parse import urlparse, parse_qs
 import threading
 
 from dotenv import load_dotenv
+from game_client.logging_utils import log, log_context, set_log_context
 load_dotenv()
 
 TEAM_ID = os.getenv("TEAM_ID", "16")
@@ -181,14 +182,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 def main():
     server = HTTPServer(("localhost", PORT), DashboardHandler)
-    print(f"🍕 Hackapizza Dashboard running at http://localhost:{PORT}")
-    print(f"   Team ID: {TEAM_ID}")
-    print(f"   Game server: {BASE_URL}")
-    print("   Press Ctrl+C to stop\n")
+    set_log_context(run_id=os.getenv("RUN_ID", "main"))
+    with log_context(component="dashboard_server"):
+        log("INIT", f"Hackapizza Dashboard running at http://localhost:{PORT}", event="dashboard.started")
+        log("INIT", f"Team ID: {TEAM_ID}", event="dashboard.config")
+        log("INIT", f"Game server: {BASE_URL}", event="dashboard.config")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nServer stopped.")
+        log("INIT", "Dashboard server stopped", event="dashboard.stopped")
 
 
 if __name__ == "__main__":

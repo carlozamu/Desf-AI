@@ -22,6 +22,7 @@ import aiohttp
 import firebase_admin
 from dotenv import load_dotenv
 from firebase_admin import credentials, firestore
+from game_client.logging_utils import log, log_context, set_log_context
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.join(_HERE, "..")
@@ -54,7 +55,13 @@ _BATCH_DELAY = 0.8
 
 def _require_api_key() -> None:
     if not TEAM_API_KEY:
-        sys.exit("❌ SERVER_API_KEY (o TEAM_API_KEY) non trovata nel file .env")
+        log(
+            "ERROR",
+            "SERVER_API_KEY (or TEAM_API_KEY) non trovata nel file .env",
+            event="meals_tracker.config.missing_api_key",
+            level="ERROR",
+        )
+        sys.exit("SERVER_API_KEY (o TEAM_API_KEY) non trovata nel file .env")
 
 
 def init_firebase() -> firestore.Client | None:
@@ -64,7 +71,14 @@ def init_firebase() -> firestore.Client | None:
             firebase_admin.initialize_app(cred)
         return firestore.client()
     except Exception as exc:
-        print(f"⚠️ Errore inizializzazione Firebase: {exc}")
+        log(
+            "TRACK",
+            f"Errore inizializzazione Firebase: {exc}",
+            event="firebase.init.failed",
+            level="ERROR",
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
         return None
 
 
@@ -89,13 +103,34 @@ async def _fetch_json(
                     continue
 
                 body = await resp.text()
-                print(f"⚠️ HTTP {resp.status} su {url}: {body[:200]}")
+                log(
+                    "HTTP",
+                    f"HTTP {resp.status} su {url}: {body[:200]}",
+                    event="http.request.failed",
+                    level="WARN",
+                    http_endpoint=url,
+                    status_code=resp.status,
+                )
                 return None
         except aiohttp.ClientError as exc:
-            print(f"⚠️ Errore rete su {url}: {exc}")
+            log(
+                "HTTP",
+                f"Errore rete su {url}: {exc}",
+                event="http.request.error",
+                level="WARN",
+                http_endpoint=url,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
             return None
 
-    print(f"❌ Rinuncio dopo {retries} tentativi: {url}")
+    log(
+        "HTTP",
+        f"Rinuncio dopo {retries} tentativi: {url}",
+        event="http.request.retries_exhausted",
+        level="ERROR",
+        http_endpoint=url,
+    )
     return None
 
 
@@ -222,7 +257,12 @@ async def collect_turn_meals(
             include_closed=include_closed_restaurants,
         )
         if not restaurants:
-            print("⚠️ Nessun ristorante trovato.")
+            log(
+                "TRACK",
+                "Nessun ristorante trovato.",
+                event="meals_tracker.restaurants.empty",
+                level="WARN",
+            )
             return {}
 
         compiled: dict[str, dict[str, Any]] = {}
@@ -328,36 +368,52 @@ def save_to_firebase(
     }
     try:
         db.collection("meals").document(doc_id).set(payload)
-        print(f"💾 Dati salvati su Firebase -> meals/{doc_id}")
+        log("TRACK", f"Dati salvati su Firebase -> meals/{doc_id}", event="tracker.save.completed")
         return True
     except Exception as exc:
-        print(f"❌ Errore salvataggio Firebase: {exc}")
+        log(
+            "TRACK",
+            f"Errore salvataggio Firebase: {exc}",
+            event="tracker.save.failed",
+            level="ERROR",
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
         return False
 
 
 async def main(turn_id: int, run_id: str) -> None:
-    _require_api_key()
+    set_log_context(turn_id=turn_id, run_id=run_id, phase="stopped")
+    with log_context(component="serving.meals_tracker"):
+        _require_api_key()
 
-    db = init_firebase()
-    if db is None:
-        sys.exit("❌ Firebase non disponibile")
+        db = init_firebase()
+        if db is None:
+            log("ERROR", "Firebase non disponibile", event="meals_tracker.firebase.unavailable", level="ERROR")
+            sys.exit("Firebase non disponibile")
 
-    restaurants_data = await collect_turn_meals(turn_id)
-    if not restaurants_data:
-        print("⚠️ Nessun dato raccolto")
-        return
+        restaurants_data = await collect_turn_meals(turn_id)
+        if not restaurants_data:
+            log("TRACK", "Nessun dato raccolto", event="meals_tracker.collect.empty", level="WARN")
+            return
 
-    save_to_firebase(db, turn_id, run_id, restaurants_data)
+        save_to_firebase(db, turn_id, run_id, restaurants_data)
 
-    ranking = summarize_unserved_requests(restaurants_data)[:10]
-    if ranking:
-        print("\nTop ricette richieste ma non eseguite:")
+        ranking = summarize_unserved_requests(restaurants_data)[:10]
         for row in ranking:
             if row["unserved_requests"] <= 0:
                 continue
-            print(
-                f"  - {row['recipe_name']}: unserved={row['unserved_requests']} "
-                f"(tot={row['total_requests']}, served={row['executed_requests']})"
+            log(
+                "TRACK",
+                (
+                    f"{row['recipe_name']}: unserved={row['unserved_requests']} "
+                    f"(tot={row['total_requests']}, served={row['executed_requests']})"
+                ),
+                event="meals_tracker.top_unserved.entry",
+                recipe_name=row["recipe_name"],
+                unserved_requests=row["unserved_requests"],
+                total_requests=row["total_requests"],
+                executed_requests=row["executed_requests"],
             )
 
 

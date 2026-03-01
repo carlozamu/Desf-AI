@@ -4,23 +4,23 @@ from menu_pricing import compute_menu_price
 
 
 class TestMenuPricing(unittest.TestCase):
-    def test_default_uses_tiered_fixed_prices(self) -> None:
+    def test_default_uses_dynamic_cost_multiplier(self) -> None:
         cases = (
-            (0, 2),
-            (1, 50),
-            (2, 250),
-            (3, 250),
-            (10, 250),
+            (1, 10),
+            (3, 10),
+            (7, 21),
+            (42, 126),
         )
-        for dish_index, expected_price in cases:
-            with self.subTest(dish_index=dish_index):
-                price, mode = compute_menu_price(
-                    ingredient_cost=42,
-                    is_cost_1x_test=False,
-                    dish_index=dish_index,
-                )
-                self.assertEqual(price, expected_price)
-                self.assertEqual(mode, "default_tiered_fixed_2_50_250")
+        for ingredient_cost, expected_price in cases:
+            for dish_index in (0, 1, 2, 3):
+                with self.subTest(ingredient_cost=ingredient_cost, dish_index=dish_index):
+                    price, mode = compute_menu_price(
+                        ingredient_cost=ingredient_cost,
+                        is_cost_1x_test=False,
+                        dish_index=dish_index,
+                    )
+                    self.assertEqual(price, expected_price)
+                    self.assertEqual(mode, "fallback_cost_3x")
 
     def test_cost_1x_test_is_unchanged(self) -> None:
         cases = (

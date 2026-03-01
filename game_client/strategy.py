@@ -88,7 +88,15 @@ async def choose_target_recipes_for_bidding(
         meals_data = await collect_turn_meals_fn(previous_turn)
         ranking = summarize_unserved_requests_fn(meals_data)
     except Exception as exc:
-        log("STRATEGY", f"Impossibile analizzare /meals turn {previous_turn}: {exc}")
+        log(
+            "STRATEGY",
+            f"Impossibile analizzare /meals turn {previous_turn}: {exc}",
+            event="strategy.meals_analysis.failed",
+            level="WARN",
+            source_turn_id=previous_turn,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )
         ranking = []
 
     chosen: list[dict[str, Any]] = []

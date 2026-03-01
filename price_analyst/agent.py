@@ -4,6 +4,7 @@ import io
 from contextlib import redirect_stdout
 from typing import List, Dict, Any
 from dotenv import load_dotenv
+from game_client.logging_utils import log, log_context, set_log_context
 
 from datapizza.agents import Agent
 from datapizza.clients.openai_like import OpenAILikeClient
@@ -47,7 +48,14 @@ def save_logs_to_file(filename: str):
         # Svuota i log in memoria per il prossimo turno
         execution_logs.clear()
     except Exception as e:
-        print(f"Errore critico durante il salvataggio dei log: {e}")
+        log(
+            "PRICE",
+            f"Errore critico durante il salvataggio dei log: {e}",
+            event="price_analyst.logs.save_failed",
+            level="ERROR",
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
 
 
 
@@ -168,36 +176,58 @@ def get_bidding_prices(current_turn: int, max_history: int = _MAX_HISTORY_RUNS) 
     Esegue l'agente catturandone l'output a terminale, salva su Firebase e crea il file di log.
     Analizza solo le ultime `max_history` run (default: _MAX_HISTORY_RUNS).
     """
-    log_message(f"🤖 Inizio calcolo prezzi per il turno {current_turn} (storia={max_history} run)...")
-    prompt = (
-        f"Calculate the optimal bid prices for all items for turn {current_turn}. "
-        f"Use get_recent_bids() to load the last {max_history} historical runs — "
-        f"do NOT fetch individual turns by ID."
-    )
-    log_message(f"📝 Prompt inviato: {prompt}")
-    
-    # Catturiamo tutto l'output "grafico" della libreria Datapizza
-    agent_output_capture = io.StringIO()
-    with redirect_stdout(agent_output_capture):
-        response = price_analyst_agent.run(prompt)
-    
-    # Aggiungiamo l'output catturato ai nostri log interni
-    log_message(agent_output_capture.getvalue())
-    
-    prices = {}
-    try:
-        text = response.text.replace('```json', '').replace('```', '').strip()
-        prices = json.loads(text)
-        log_message(f"✅ Prezzi generati con successo: {json.dumps(prices)}")
-        
-        # Salvataggio su Firebase
-        save_bids_to_firebase(current_turn, prices)
-    except json.JSONDecodeError:
-        log_message(f"❌ Failed to parse Agent response as JSON: {response.text}")
-    
-    # SALVATAGGIO NELLA CARTELLA DELL'AGENTE
-    # Creiamo il percorso assoluto unendo AGENT_DIR al nome del file
-    log_filename = os.path.join(AGENT_DIR, f"execution_log_turn.txt")
-    save_logs_to_file(log_filename)
-    
-    return prices
+    set_log_context(turn_id=current_turn, phase="closed_bid")
+    with log_context(component="price_analyst.agent"):
+        log_message(f"🤖 Inizio calcolo prezzi per il turno {current_turn} (storia={max_history} run)...")
+        log(
+            "PRICE",
+            "price analyst run started",
+            event="price_analyst.run.started",
+            max_history=max_history,
+        )
+        prompt = (
+            f"Calculate the optimal bid prices for all items for turn {current_turn}. "
+            f"Use get_recent_bids() to load the last {max_history} historical runs — "
+            f"do NOT fetch individual turns by ID."
+        )
+        log_message(f"📝 Prompt inviato: {prompt}")
+
+        # Catturiamo tutto l'output "grafico" della libreria Datapizza
+        agent_output_capture = io.StringIO()
+        with redirect_stdout(agent_output_capture):
+            response = price_analyst_agent.run(prompt)
+
+        # Aggiungiamo l'output catturato ai nostri log interni
+        log_message(agent_output_capture.getvalue())
+
+        prices = {}
+        try:
+            text = response.text.replace('```json', '').replace('```', '').strip()
+            prices = json.loads(text)
+            log_message(f"✅ Prezzi generati con successo: {json.dumps(prices)}")
+            log(
+                "PRICE",
+                "price analyst run completed",
+                event="price_analyst.run.completed",
+                prices_count=len(prices),
+            )
+
+            # Salvataggio su Firebase
+            save_bids_to_firebase(current_turn, prices)
+        except json.JSONDecodeError:
+            log_message(f"❌ Failed to parse Agent response as JSON: {response.text}")
+            log(
+                "PRICE",
+                "failed to parse price analyst response as JSON",
+                event="price_analyst.run.parse_failed",
+                level="ERROR",
+                response_preview=response.text[:240],
+            )
+
+        # SALVATAGGIO NELLA CARTELLA DELL'AGENTE
+        # Creiamo il percorso assoluto unendo AGENT_DIR al nome del file
+        log_filename = os.path.join(AGENT_DIR, f"execution_log_turn.txt")
+        save_logs_to_file(log_filename)
+        log("PRICE", f"execution log saved to {log_filename}", event="price_analyst.logs.saved")
+
+        return prices

@@ -23,7 +23,6 @@ Usage (async, from SSE handlers):
 
 import os
 import asyncio
-import logging
 import concurrent.futures
 from typing import Dict, List, Optional
 
@@ -35,14 +34,14 @@ load_dotenv(_ENV_PATH)
 from datapizza.clients.openai_like import OpenAILikeClient
 from datapizza.agents import Agent
 from datapizza.tools import tool
+from game_client.logging_utils import log, log_context, set_log_context
 
 import api
-
-logger = logging.getLogger(__name__)
 
 # ── Lazy env reads (after load_dotenv above) ───────────────────────────────────
 REGOLO_API_KEY = os.getenv("REGOLO_API_KEY", "")
 TEAM_ID = os.getenv("TEAM_ID", api.TEAM_ID or "")
+set_log_context(run_id=os.getenv("RUN_ID", "main"))
 
 _client = OpenAILikeClient(
     api_key=REGOLO_API_KEY,
@@ -448,9 +447,24 @@ def _dump_justification_data(turn_id: int, previous_turns: Optional[List[int]]):
         with open(filepath, "w") as f:
             f.write("\n".join(data))
         
-        logger.info(f"Saved justification data to {filename}")
+        log(
+            "TRACK",
+            f"Saved justification data to {filename}",
+            event="trend_analyst.justification.saved",
+            component="trend_analyst.trend_analyst_agent",
+            turn_id=turn_id,
+        )
     except Exception as e:
-        logger.error(f"Failed to dump justification data: {e}")
+        log(
+            "TRACK",
+            f"Failed to dump justification data: {e}",
+            event="trend_analyst.justification.save_failed",
+            component="trend_analyst.trend_analyst_agent",
+            level="ERROR",
+            turn_id=turn_id,
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
 
 def run_trend_analysis(turn_id: int, previous_turns: Optional[List[int]] = None) -> str:
     """
@@ -463,14 +477,15 @@ def run_trend_analysis(turn_id: int, previous_turns: Optional[List[int]] = None)
     Returns:
         Structured markdown report.
     """
-    agent = _build_agent()
-    turns = sorted(set([turn_id] + (previous_turns or [])))
-    turns_str = ", ".join(str(t) for t in turns)
+    with log_context(component="trend_analyst.trend_analyst_agent", turn_id=turn_id):
+        agent = _build_agent()
+        turns = sorted(set([turn_id] + (previous_turns or [])))
+        turns_str = ", ".join(str(t) for t in turns)
 
-    # ── NEW: Dump the raw data fetched by the tools to a markdown file
-    _dump_justification_data(turn_id, previous_turns)
+        # ── NEW: Dump the raw data fetched by the tools to a markdown file
+        _dump_justification_data(turn_id, previous_turns)
 
-    task = f"""
+        task = f"""
 Produce the full strategic intelligence report for Hackapizza 2.0.
 
 Fetch data in this order (execute ALL steps):
@@ -491,12 +506,20 @@ Then write the FULL report including every section:
 Our restaurant ID = {TEAM_ID}. Turns analyzed: {turns_str}.
 """
 
-    try:
-        result = agent.run(task)
-        return result.text
-    except Exception as e:
-        logger.error(f"TrendAnalyst failed: {e}")
-        return f"❌ Analysis failed: {e}"
+        try:
+            result = agent.run(task)
+            return result.text
+        except Exception as e:
+            log(
+                "ERROR",
+                f"TrendAnalyst failed: {e}",
+                event="trend_analyst.run.failed",
+                component="trend_analyst.trend_analyst_agent",
+                turn_id=turn_id,
+                error_type=type(e).__name__,
+                error_message=str(e),
+            )
+            return f"❌ Analysis failed: {e}"
 
 
 async def a_run_trend_analysis(turn_id: int, previous_turns: Optional[List[int]] = None) -> str:

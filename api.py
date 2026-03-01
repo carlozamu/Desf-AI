@@ -1,26 +1,41 @@
 import aiohttp
 import os
-import logging
 from typing import Dict, Any, List
+from game_client.logging_utils import log, log_context
 
 TEAM_ID = os.getenv("TEAM_ID", "")
 TEAM_API_KEY = os.getenv("TEAM_API_KEY", os.getenv("SERVER_API_KEY", ""))
 BASE_URL = os.getenv("BASE_URL", "https://hackapizza.datapizza.tech")
 
-logger = logging.getLogger(__name__)
-
 async def _make_request(method: str, endpoint: str, params: Dict = None, json: Dict = None) -> Any:
     url = f"{BASE_URL}{endpoint}"
     headers = {"x-api-key": TEAM_API_KEY}
-    
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.request(method, url, headers=headers, params=params, json=json) as response:
-                response.raise_for_status()
-                return await response.json()
-        except aiohttp.ClientError as e:
-            logger.error(f"API Request failed: {method} {url} - {e}")
-            return None
+
+    with log_context(component="api"):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.request(method, url, headers=headers, params=params, json=json) as response:
+                    response.raise_for_status()
+                    data = await response.json()
+                    log(
+                        "HTTP",
+                        f"API request completed: {method} {endpoint}",
+                        event="http.request.completed",
+                        http_endpoint=endpoint,
+                        status_code=response.status,
+                    )
+                    return data
+            except aiohttp.ClientError as e:
+                log(
+                    "HTTP",
+                    f"API Request failed: {method} {url} - {e}",
+                    event="http.request.error",
+                    level="ERROR",
+                    http_endpoint=endpoint,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                )
+                return None
 
 async def get_meals(turn_id: int) -> List[Dict]:
     return await _make_request("GET", "/meals", params={"turn_id": turn_id, "restaurant_id": TEAM_ID})

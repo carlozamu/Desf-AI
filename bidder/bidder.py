@@ -1,6 +1,5 @@
 import sys
 import os
-import json
 import asyncio
 from typing import Dict, List, Any
 
@@ -10,13 +9,19 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datapizza.tools import tool
+from game_client.logging_utils import log, log_context, set_log_context
 
 # --- Moduli di Root ---
 try:
     import api
     from api import call_mcp_tool
 except ImportError:
-    print("Warning: api.py not found, API features will fail.")
+    log(
+        "WARN",
+        "api.py not found, API features will fail",
+        event="bidder.api.unavailable",
+        level="WARN",
+    )
     api = None
     async def call_mcp_tool(*args, **kwargs): return {"error": "api module missing"}
 
@@ -33,7 +38,14 @@ def init_firebase(cred_path: str):
             firebase_admin.initialize_app(cred)
         return firestore.client()
     except Exception as e:
-        print(f"⚠️ Firebase initialization error: {e}. Check the JSON file path.")
+        log(
+            "TRACK",
+            f"Firebase initialization error: {e}. Check the JSON file path.",
+            event="firebase.init.failed",
+            level="ERROR",
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
         return None
 
 def get_firestore_client():
@@ -51,7 +63,15 @@ def get_prices_from_firebase(turn_id: int) -> Dict[str, float]:
         doc = db.collection("runs").document(f"run_{turn_id}").get()
         return doc.to_dict().get("bids_prices", {}) if doc.exists else {}
     except Exception as e:
-        print(f"Error fetching prices from Firebase: {e}")
+        log(
+            "TRACK",
+            f"Error fetching prices from Firebase: {e}",
+            event="bidder.prices.fetch.failed",
+            level="ERROR",
+            turn_id=turn_id,
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
         return {}
 
 def get_initial_menu_from_firebase(turn_id: int) -> List[Dict]:
@@ -64,7 +84,15 @@ def get_initial_menu_from_firebase(turn_id: int) -> List[Dict]:
         doc = db.collection("runs").document(f"run_{turn_id}").get()
         return doc.to_dict().get("initial_menu", []) if doc.exists else {}
     except Exception as e:
-        print(f"Error fetching initial menu from Firebase: {e}")
+        log(
+            "TRACK",
+            f"Error fetching initial menu from Firebase: {e}",
+            event="bidder.menu.fetch.failed",
+            level="ERROR",
+            turn_id=turn_id,
+            error_type=type(e).__name__,
+            error_message=str(e),
+        )
         return []
 
 
@@ -86,7 +114,13 @@ def generate_shopping_list_from_menu(menu: List[Dict], recipes: Dict) -> Dict[st
             
         recipe = recipes.get(dish_name)
         if not recipe or "ingredients" not in recipe:
-            print(f"Warning: Recipe for '{dish_name}' not found or has no ingredients.")
+            log(
+                "BID",
+                f"Recipe for '{dish_name}' not found or has no ingredients.",
+                event="bidder.shopping_list.recipe_missing",
+                level="WARN",
+                dish_name=dish_name,
+            )
             continue
             
         for ingredient, quantity in recipe["ingredients"].items():
@@ -137,58 +171,94 @@ async def place_bids_for_turn(
     3. Calculate optimal bids.
     4. Transmit bids to the server MCP endpoint.
     """
-    print(f"\n--- [BIDDER] Pipeline started for Turn {turn_id} ---")
+    set_log_context(turn_id=turn_id, phase="closed_bid")
+    with log_context(component="bidder.bidder"):
+        log("BID", f"Pipeline started for turn {turn_id}", event="bidder.pipeline.started")
 
-    # 1. Resolve Initial Menu
-    if menu is None:
-        print("[BIDDER] Fetching initial menu from Firebase...")
-        menu = get_initial_menu_from_firebase(turn_id)
+        # 1. Resolve Initial Menu
+        if menu is None:
+            log("BID", "Fetching initial menu from Firebase", event="bidder.menu.fetch.started")
+            menu = get_initial_menu_from_firebase(turn_id)
 
-    if not menu:
-        print("[BIDDER] No initial menu found. Aborting.")
-        return {"status": "no_bids_needed", "reason": "empty_menu"}
-        
-    # 2. Fetch Recipes and Generate Shopping List
-    print("[BIDDER] Fetching recipes catalog from server...")
-    try:
-        recipes_list = await api.get_recipes() if api else []
-    except Exception as e:
-        print(f"[BIDDER] ⚠️ Error fetching recipes: {e}")
-        recipes_list = []
-        
-    recipes_map = {r["name"]: r for r in recipes_list} if recipes_list else {}
-    shopping_list = generate_shopping_list_from_menu(menu, recipes_map)
-    
-    if not shopping_list:
-        print("[BIDDER] Shopping list is empty after checking recipes. Aborting.")
-        return {"status": "no_bids_needed", "reason": "empty_shopping_list"}
-    
-    print(f"[BIDDER] Calculated Shopping List: {len(shopping_list)} unique ingredients")
-    
-    # 3. Resolve Estimated Prices
-    if prices is None:
-        print("[BIDDER] Fetching price estimates from Firebase...")
-        prices = get_prices_from_firebase(turn_id)
-        
-    if not prices:
-        print("[BIDDER] ⚠️ Warning: Price estimates are empty. Using base defaults.")
-        prices = {}
-        
-    # 4. Calculate Final Bids
-    bids = calculate_bids(shopping_list, prices, risk_multiplier)
-    
-    if not bids:
-        print("[BIDDER] No valid bids to place after calculations. Aborting.")
-        return {"status": "no_bids_needed", "reason": "calculation_failed"}
-       
-    print(f"[BIDDER] Formulated {len(bids)} Bids Payload")
+        if not menu:
+            log("BID", "No initial menu found. Aborting.", event="bidder.pipeline.no_menu", level="WARN")
+            return {"status": "no_bids_needed", "reason": "empty_menu"}
 
-    # 5. Dispatch Bids to Server
-    print("[BIDDER] Dispatching 'closed_bid' request to MCP Server...")
-    response = await call_mcp_tool("closed_bid", {"bids": bids})
-    
-    print("[BIDDER] Server Response Received.")
-    return response
+        # 2. Fetch Recipes and Generate Shopping List
+        log("BID", "Fetching recipes catalog from server", event="bidder.recipes.fetch.started")
+        try:
+            recipes_list = await api.get_recipes() if api else []
+        except Exception as e:
+            log(
+                "BID",
+                f"Error fetching recipes: {e}",
+                event="bidder.recipes.fetch.failed",
+                level="ERROR",
+                error_type=type(e).__name__,
+                error_message=str(e),
+            )
+            recipes_list = []
+
+        recipes_map = {r["name"]: r for r in recipes_list} if recipes_list else {}
+        shopping_list = generate_shopping_list_from_menu(menu, recipes_map)
+
+        if not shopping_list:
+            log(
+                "BID",
+                "Shopping list is empty after checking recipes. Aborting.",
+                event="bidder.pipeline.no_shopping_list",
+                level="WARN",
+            )
+            return {"status": "no_bids_needed", "reason": "empty_shopping_list"}
+
+        log(
+            "BID",
+            f"Calculated shopping list: {len(shopping_list)} unique ingredients",
+            event="bidder.shopping_list.generated",
+            ingredients_count=len(shopping_list),
+        )
+
+        # 3. Resolve Estimated Prices
+        if prices is None:
+            log("BID", "Fetching price estimates from Firebase", event="bidder.prices.fetch.started")
+            prices = get_prices_from_firebase(turn_id)
+
+        if not prices:
+            log(
+                "BID",
+                "Price estimates are empty. Using base defaults.",
+                event="bidder.prices.empty_defaults",
+                level="WARN",
+            )
+            prices = {}
+
+        # 4. Calculate Final Bids
+        bids = calculate_bids(shopping_list, prices, risk_multiplier)
+
+        if not bids:
+            log(
+                "BID",
+                "No valid bids to place after calculations. Aborting.",
+                event="bidder.pipeline.no_bids",
+                level="WARN",
+            )
+            return {"status": "no_bids_needed", "reason": "calculation_failed"}
+
+        log("BID", f"Formulated {len(bids)} bids payload", event="bid.payload.built", bids_count=len(bids))
+
+        # 5. Dispatch Bids to Server
+        log("BID", "Dispatching closed_bid request to MCP server", event="bid.submit.started")
+        response = await call_mcp_tool("closed_bid", {"bids": bids})
+        if isinstance(response, dict) and response.get("error"):
+            log(
+                "BID",
+                f"closed_bid response error: {response.get('error')}",
+                event="bid.submit.failed",
+                level="ERROR",
+            )
+        else:
+            log("BID", "closed_bid response received", event="bid.submitted")
+        return response
 
 
 # ==========================================
@@ -196,7 +266,7 @@ async def place_bids_for_turn(
 # ==========================================
 
 async def example_usage():
-    print("[TEST] Running Bidder Module standalone execution.")
+    log("INIT", "Running Bidder module standalone execution", event="bidder.example.started")
     # Mocking environment
     os.environ["TEAM_API_KEY"] = "MOCK_API_KEY"
     os.environ["TEAM_ID"] = "1"
