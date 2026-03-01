@@ -26,3 +26,19 @@ Questo progetto utilizza Firebase Firestore per il salvataggio dei dati (Ricette
      ```bash
      python data_manager.py
      ```
+
+## Client Architecture (Refactor)
+
+L'entrypoint resta `client_template.py`, ma la logica è stata separata nel package `game_client/`:
+
+- `game_client/config.py`: parsing variabili ambiente e configurazione runtime.
+- `game_client/state.py`: stato di partita condiviso.
+- `game_client/strategy.py`: funzioni pure di strategia (bidding/menu/serving helpers).
+- `game_client/http_api.py`: accesso endpoint REST (`/recipes`, `/meals`, ...).
+- `game_client/mcp_gateway.py`: wrapper MCP (`call_tool`).
+- `game_client/phases.py`: handlers delle fasi (`closed_bid`, `waiting`, `serving`, `stopped`).
+- `game_client/events.py`: routing eventi di gioco.
+- `game_client/sse.py`: parsing SSE e lifecycle connessione/retry.
+- `game_client/app.py`: wiring finale delle dipendenze.
+
+Questo mantiene il comportamento del client invariato, riducendo l'accoppiamento rispetto al vecchio file monolitico.
