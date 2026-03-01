@@ -257,6 +257,7 @@ def get_bid_history_for_turn(turn_id: int) -> str:
 
     lines = [f"Bid History Turn {turn_id} — {len(bids)} bids on {len(by_ingredient)} ingredients:\n"]
     for ing, ibids in sorted(by_ingredient.items(), key=lambda x: len(x[1]), reverse=True):
+        # Correctly extract bid price/amount
         prices = [b.get("bid", b.get("bidAmount", b.get("price", 0))) for b in ibids]
         total_qty = sum(b.get("quantity", 0) for b in ibids)
         lines.append(
@@ -264,12 +265,13 @@ def get_bid_history_for_turn(turn_id: int) -> str:
             f"bid min={min(prices)} avg={round(sum(prices)/len(prices),1)} max={max(prices)}"
         )
         for b in sorted(ibids, key=lambda x: x.get("bid", x.get("bidAmount", 0)), reverse=True)[:4]:
-            r_id = b.get("restaurantId", b.get("restaurant_id", "?"))
-            amt = b.get("bid", b.get("bidAmount", "?"))
+            # Correctly extract restaurant name/id
+            r_id = b.get("restaurant_name", b.get("team_name", b.get("restaurantId", b.get("restaurant_id", b.get("team_id", "?")))))
+            amt = b.get("bid", b.get("bidAmount", b.get("price", "?")))
             qty = b.get("quantity", "?")
-            won = b.get("won", b.get("fulfilled", None))
+            won = b.get("won", b.get("fulfilled", b.get("executed", None)))
             won_tag = " [WON]" if won is True else (" [LOST]" if won is False else "")
-            lines.append(f"      R{r_id}: bid={amt} qty={qty}{won_tag}")
+            lines.append(f"      {r_id}: bid={amt} qty={qty}{won_tag}")
 
     return "\n".join(lines)
 
@@ -367,20 +369,28 @@ def get_market_entries() -> str:
 
     if sells:
         lines.append("── SELL offers (can buy these NOW) ──")
-        for e in sorted(sells, key=lambda x: x.get("price", 9999)):
+        for e in sorted(sells, key=lambda x: x.get("totalPrice", x.get("price", 9999))):
+            ing_name = e.get("ingredient_name", e.get("ingredientName", "Unknown"))
+            if isinstance(e.get("ingredient"), dict):
+                ing_name = e.get("ingredient").get("name", ing_name)
+            
             lines.append(
-                f"  [#{e.get('id','?')}] {e.get('ingredientName', e.get('ingredient_name','?'))} "
-                f"×{e.get('quantity','?')} @ {e.get('price','?')} cr "
-                f"(from R{e.get('restaurantId','?')})"
+                f"  [#{e.get('id','?')}] {ing_name} "
+                f"×{e.get('quantity','?')} @ {e.get('totalPrice', e.get('price','?'))} cr "
+                f"(from R{e.get('createdByRestaurantId', e.get('restaurantId', e.get('restaurant_id', '?')))})"
             )
 
     if buys:
         lines.append("\n── BUY requests (sell to them) ──")
-        for e in sorted(buys, key=lambda x: x.get("price", 0), reverse=True):
+        for e in sorted(buys, key=lambda x: x.get("totalPrice", x.get("price", 0)), reverse=True):
+            ing_name = e.get("ingredient_name", e.get("ingredientName", "Unknown"))
+            if isinstance(e.get("ingredient"), dict):
+                ing_name = e.get("ingredient").get("name", ing_name)
+
             lines.append(
-                f"  [#{e.get('id','?')}] {e.get('ingredientName', e.get('ingredient_name','?'))} "
-                f"×{e.get('quantity','?')} @ {e.get('price','?')} cr "
-                f"(R{e.get('restaurantId','?')} is buying)"
+                f"  [#{e.get('id','?')}] {ing_name} "
+                f"×{e.get('quantity','?')} @ {e.get('totalPrice', e.get('price','?'))} cr "
+                f"(R{e.get('createdByRestaurantId', e.get('restaurantId', e.get('restaurant_id', '?')))} is buying)"
             )
 
     return "\n".join(lines)
