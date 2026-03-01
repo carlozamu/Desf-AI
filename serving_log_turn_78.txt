@@ -1,0 +1,15 @@
+--- SERVING LOG (TURN 78) ---
+
+Cliente: Vera Wren            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Willa Kade           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Wren Mire            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Leona Flint          | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Sora Flint           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Zephyr Alden         | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Holt Riven           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Miro Hatch           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Juno Stroud          | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Selma Thorn          | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+
+--- REPORT VENDITE DEL TURNO ---
+Nessun ordine consegnato in questo turno.

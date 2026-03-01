@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import Any, Awaitable, Callable
 
 from game_client.config import ClientConfig, get_firebase_cred_path
 from game_client.logging_utils import log, set_log_context
 from game_client.market_buyer import buy_missing_ingredients
+from game_client.market_seller import liquidate_inventory_on_stockout
 from game_client.prestige_strategy import (
     TrendDirection,
     analyze_trend_direction,
@@ -50,6 +52,9 @@ class PhaseRunner:
         self.save_meals_to_firebase_fn = save_meals_to_firebase_fn
         self.save_menus_to_firebase_fn = save_menus_to_firebase_fn
         self.run_trend_analysis_fn = run_trend_analysis_fn
+        self._serving_prewarm_task: asyncio.Task[Any] | None = None
+        self._trend_prefetch_task: asyncio.Task[Any] | None = None
+        self._trend_prefetch_turn_id: int = 0
 
     @staticmethod
     def _get_previous_turns(turn_id: int) -> list[int]:
@@ -57,64 +62,172 @@ class PhaseRunner:
             return []
         return list(range(max(1, turn_id - 2), turn_id))
 
-    async def _ensure_trend_plan_for_current_turn(self) -> None:
-        turn_id = int(self.state.current_turn_id or 0)
-        if turn_id <= 0:
+    async def _ensure_trend_plan_for_target_turn(
+        self,
+        *,
+        source_turn_id: int,
+        target_turn_id: int,
+    ) -> None:
+        source_turn = int(source_turn_id or 0)
+        target_turn = int(target_turn_id or 0)
+        if source_turn <= 0 or target_turn <= 0:
             return
 
         existing_plan = self.state.next_turn_trend_plan
-        if existing_plan is not None and existing_plan.target_turn_id == turn_id:
+        if existing_plan is not None and int(existing_plan.target_turn_id) == target_turn:
             return
 
-        previous_turns = self._get_previous_turns(turn_id)
+        previous_turns = self._get_previous_turns(source_turn)
         log(
             "TREND",
-            f"Analisi trend per turno {turn_id} (precedenti: {previous_turns})",
+            (
+                f"Analisi trend post-turno: source={source_turn} -> target={target_turn} "
+                f"(precedenti source: {previous_turns})"
+            ),
             event="trend.plan.requested",
-            source_turn_id=turn_id,
+            source_turn_id=source_turn,
+            target_turn_id=target_turn,
             previous_turns=previous_turns,
         )
         try:
             report = await self.run_trend_analysis_fn(
-                turn_id,
+                source_turn,
                 previous_turns if previous_turns else None,
             )
         except Exception as exc:
             log(
                 "TREND",
-                f"trend analysis failed for turn={turn_id}: {exc}",
+                f"trend analysis failed for source={source_turn} target={target_turn}: {exc}",
                 event="trend.plan.failed",
                 level="ERROR",
-                source_turn_id=turn_id,
+                source_turn_id=source_turn,
+                target_turn_id=target_turn,
                 error_type=type(exc).__name__,
                 error_message=str(exc),
             )
             return
 
         plan, reason = parse_trend_plan(
-            source_turn_id=turn_id,
-            target_turn_id=turn_id,
+            source_turn_id=source_turn,
+            target_turn_id=target_turn,
             report=report,
         )
         if plan is None:
+            if existing_plan is not None and int(existing_plan.target_turn_id) == target_turn:
+                self.state.next_turn_trend_plan = None
             log(
                 "TREND",
-                f"trend plan unusable for turn={turn_id}: {reason}",
+                f"trend plan unusable for source={source_turn} target={target_turn}: {reason}",
                 event="trend.plan.unusable",
                 level="WARN",
-                source_turn_id=turn_id,
+                source_turn_id=source_turn,
+                target_turn_id=target_turn,
             )
             return
 
         self.state.next_turn_trend_plan = plan
         log(
             "TREND",
-            f"Trend plan: {len(plan.menu)} piatti nel menu, {len(plan.bids)} ingredienti nelle offerte",
+            (
+                f"Trend plan pronto per turno {target_turn}: "
+                f"{len(plan.menu)} piatti menu, {len(plan.bids)} ingredienti bid"
+            ),
             event="trend.plan.stored",
-            source_turn_id=turn_id,
+            source_turn_id=source_turn,
+            target_turn_id=target_turn,
             menu_size=len(plan.menu),
             bids_size=len(plan.bids),
         )
+
+    def _start_trend_prefetch_for_next_turn(self, *, source_turn_id: int) -> None:
+        source_turn = int(source_turn_id or 0)
+        target_turn = source_turn + 1
+        if source_turn <= 0:
+            return
+
+        existing_plan = self.state.next_turn_trend_plan
+        if existing_plan is not None and int(existing_plan.target_turn_id) == target_turn:
+            log(
+                "TREND",
+                f"Prefetch trend skip: piano gia pronto per turno target {target_turn}",
+                event="trend.prefetch.skipped.already_ready",
+                source_turn_id=source_turn,
+                target_turn_id=target_turn,
+            )
+            return
+
+        running = self._trend_prefetch_task
+        if running is not None:
+            if not running.done() and int(self._trend_prefetch_turn_id) == target_turn:
+                log(
+                    "TREND",
+                    f"Prefetch trend gia in corso per turno target {target_turn}",
+                    event="trend.prefetch.already_running",
+                    source_turn_id=source_turn,
+                    target_turn_id=target_turn,
+                )
+                return
+            if not running.done():
+                running.cancel()
+                log(
+                    "TREND",
+                    (
+                        "Prefetch trend cancellato per nuovo target turno: "
+                        f"{self._trend_prefetch_turn_id} -> {target_turn}"
+                    ),
+                    event="trend.prefetch.cancelled",
+                    source_turn_id=source_turn,
+                    target_turn_id=target_turn,
+                )
+
+        task = asyncio.create_task(
+            self._ensure_trend_plan_for_target_turn(
+                source_turn_id=source_turn,
+                target_turn_id=target_turn,
+            )
+        )
+        self._trend_prefetch_task = task
+        self._trend_prefetch_turn_id = target_turn
+        log(
+            "TREND",
+            (
+                f"Prefetch trend avviato a fine turno {source_turn} "
+                f"per target turno {target_turn}"
+            ),
+            event="trend.prefetch.started",
+            source_turn_id=source_turn,
+            target_turn_id=target_turn,
+        )
+
+        def _on_done(done_task: asyncio.Task[Any]) -> None:
+            if self._trend_prefetch_task is done_task:
+                self._trend_prefetch_task = None
+                self._trend_prefetch_turn_id = 0
+            try:
+                done_task.result()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                log(
+                    "TREND",
+                    f"Prefetch trend in errore: {exc}",
+                    event="trend.prefetch.failed",
+                    level="ERROR",
+                    source_turn_id=source_turn,
+                    target_turn_id=target_turn,
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+            else:
+                log(
+                    "TREND",
+                    f"Prefetch trend completato per target turno {target_turn}",
+                    event="trend.prefetch.completed",
+                    source_turn_id=source_turn,
+                    target_turn_id=target_turn,
+                )
+
+        task.add_done_callback(_on_done)
 
     async def _apply_budget_cap(self, bids: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Scale bid quantities down if total cost exceeds turn budget constraints."""
@@ -130,22 +243,76 @@ class PhaseRunner:
         if balance <= 0:
             return bids
 
-        budget_limit_balance = balance * 0.80
-        budget_limit = min(budget_limit_balance, float(self.config.turn_spend_cap))
+        turn_spend_cap = max(100, int(self.state.turn_budget_cap_effective or self.config.turn_spend_cap))
+        spend_floor_cfg = float(self.state.auction_spend_floor_ratio_effective or 0.0)
+        if spend_floor_cfg <= 0:
+            spend_floor_cfg = float(self.config.auction_spend_floor_ratio)
+        spend_floor_cfg = max(0.0, min(1.0, spend_floor_cfg))
+
+        budget_limit_balance = balance * 0.90
+        budget_limit = min(budget_limit_balance, float(turn_spend_cap))
         total_cost = sum(int(b.get("bid", 0)) * int(b.get("quantity", 1)) for b in bids)
+
+        spend_floor_ratio = spend_floor_cfg
+        spend_floor = int(round(budget_limit * spend_floor_ratio))
+        if bids and spend_floor > 0 and total_cost < spend_floor:
+            ranked_indices = sorted(
+                range(len(bids)),
+                key=lambda i: (
+                    int(bids[i].get("bid", 0)),
+                    int(bids[i].get("quantity", 0)),
+                ),
+                reverse=True,
+            )
+            gap = max(0, spend_floor - total_cost)
+            if ranked_indices and gap > 0:
+                weight_sum = sum(max(1, len(ranked_indices) - rank) for rank in range(len(ranked_indices)))
+                for rank, idx in enumerate(ranked_indices):
+                    row = bids[idx]
+                    bid_val = max(1, int(row.get("bid", 0)))
+                    weight = max(1, len(ranked_indices) - rank)
+                    share_cost = int(round((gap * weight) / max(1, weight_sum)))
+                    extra_qty = max(0, int(math.ceil(share_cost / bid_val)))
+                    if extra_qty <= 0:
+                        continue
+                    row["quantity"] = max(1, int(row.get("quantity", 1)) + extra_qty)
+
+                total_cost = sum(int(b.get("bid", 0)) * int(b.get("quantity", 1)) for b in bids)
+                if total_cost < spend_floor:
+                    top_idx = ranked_indices[0]
+                    top_bid = max(1, int(bids[top_idx].get("bid", 0)))
+                    top_extra = int(math.ceil((spend_floor - total_cost) / top_bid))
+                    bids[top_idx]["quantity"] = max(
+                        1,
+                        int(bids[top_idx].get("quantity", 1)) + max(0, top_extra),
+                    )
+                    total_cost = sum(int(b.get("bid", 0)) * int(b.get("quantity", 1)) for b in bids)
+
+                log(
+                    "BID",
+                    (
+                        "Asta sotto-spesa: quantità riallocate per saturare il budget "
+                        f"({total_cost:.0f}cr / floor {spend_floor:.0f}cr)"
+                    ),
+                    event="bid.budget.floor_boosted",
+                    spend_floor=spend_floor,
+                    spend_floor_ratio=spend_floor_ratio,
+                    total_cost=total_cost,
+                    budget_limit=budget_limit,
+                )
 
         if total_cost <= budget_limit:
             log(
                 "BID",
                 (
                     f"Budget OK: {total_cost:.0f} / {balance:.0f} "
-                    f"(limite effettivo {budget_limit:.0f}, cap turno {self.config.turn_spend_cap})"
+                    f"(limite effettivo {budget_limit:.0f}, cap turno {turn_spend_cap})"
                 ),
                 event="bid.budget.ok",
                 total_cost=total_cost,
                 balance=balance,
                 budget_limit=budget_limit,
-                turn_spend_cap=self.config.turn_spend_cap,
+                turn_spend_cap=turn_spend_cap,
             )
             return bids
 
@@ -161,12 +328,15 @@ class PhaseRunner:
 
         new_total = sum(_row_cost(row) for row in scaled)
 
-        # Pass 1: reduce quantities down to 1 starting from costliest rows.
+        # Pass 1: reduce quantities down to 1 starting from less competitive rows
+        # so high-bid ingredients keep higher depth whenever possible.
         if new_total > budget_limit:
             reducible = sorted(
                 range(len(scaled)),
-                key=lambda i: (int(scaled[i].get("bid", 0)), int(scaled[i].get("quantity", 0))),
-                reverse=True,
+                key=lambda i: (
+                    int(scaled[i].get("bid", 0)),
+                    -int(scaled[i].get("quantity", 0)),
+                ),
             )
             for idx in reducible:
                 row = scaled[idx]
@@ -179,7 +349,7 @@ class PhaseRunner:
                 if new_total <= budget_limit:
                     break
 
-        # Pass 2: if still above budget (all qty=1), drop highest-bid lines.
+        # Pass 2: if still above budget (all qty=1), drop lowest-bid lines first.
         if new_total > budget_limit:
             keep = list(scaled)
             keep.sort(
@@ -187,7 +357,6 @@ class PhaseRunner:
                     int(row.get("bid", 0)),
                     int(row.get("quantity", 0)),
                 ),
-                reverse=True,
             )
             dropped = 0
             while keep and new_total > budget_limit:
@@ -211,7 +380,7 @@ class PhaseRunner:
             "BID",
             (
                 f"Budget cap applicato: {total_cost:.0f} → {new_total:.0f} "
-                f"(saldo {balance:.0f}, limite effettivo {budget_limit:.0f}, cap turno {self.config.turn_spend_cap})"
+                f"(saldo {balance:.0f}, limite effettivo {budget_limit:.0f}, cap turno {turn_spend_cap})"
             ),
             event="bid.budget.capped",
             level="WARN",
@@ -220,13 +389,144 @@ class PhaseRunner:
             balance=balance,
             scale_factor=scale,
             budget_limit=budget_limit,
-            turn_spend_cap=self.config.turn_spend_cap,
+            turn_spend_cap=turn_spend_cap,
         )
         return scaled
 
     def _set_phase_context(self, phase: str) -> None:
+        if phase != "serving":
+            self._cancel_serving_prewarm(reason=f"phase_change:{phase}")
         self.state.current_phase = phase
         set_log_context(turn_id=self.state.current_turn_id, phase=phase)
+
+    def _cancel_serving_prewarm(self, *, reason: str) -> None:
+        task = self._serving_prewarm_task
+        if task is None:
+            return
+        if not task.done():
+            task.cancel()
+            log(
+                "SERVE",
+                f"Prewarm cancellato ({reason})",
+                event="dish.prepare.prewarm.cancelled",
+                reason=reason,
+            )
+        self._serving_prewarm_task = None
+
+    def _schedule_serving_prewarm(self, dish_names: list[str]) -> None:
+        if not dish_names:
+            return
+
+        self._cancel_serving_prewarm(reason="serving_restart")
+        task = asyncio.create_task(self._run_serving_prewarm(dish_names))
+        self._serving_prewarm_task = task
+
+        def _on_done(done_task: asyncio.Task[Any]) -> None:
+            if self._serving_prewarm_task is done_task:
+                self._serving_prewarm_task = None
+            try:
+                done_task.result()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                log(
+                    "SERVE",
+                    f"Prewarm task in errore: {exc}",
+                    event="dish.prepare.prewarm.failed",
+                    level="ERROR",
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
+
+        task.add_done_callback(_on_done)
+
+    async def _run_serving_prewarm(self, dish_names: list[str]) -> None:
+        requested = len(dish_names)
+        submitted = 0
+        skipped = 0
+        failed = 0
+        semaphore = asyncio.Semaphore(max(1, int(self.config.prewarm_concurrency)))
+
+        async def _prepare_one(dish_name: str) -> None:
+            nonlocal submitted, skipped, failed
+
+            async with semaphore:
+                if self.state.current_phase != "serving":
+                    skipped += 1
+                    return
+                if self.state.dishes_ready.get(dish_name) is True:
+                    skipped += 1
+                    return
+                if dish_name in self.state.dishes_in_preparation:
+                    skipped += 1
+                    return
+
+                self.state.dishes_in_preparation.add(dish_name)
+                self.state.dishes_preparing += 1
+                self.state.dishes_ready[dish_name] = False
+
+                try:
+                    response = await self.mcp_gateway.call_tool(
+                        "prepare_dish",
+                        {"dish_name": dish_name},
+                    )
+                except asyncio.CancelledError:
+                    self.state.dishes_in_preparation.discard(dish_name)
+                    self.state.dishes_preparing = max(0, self.state.dishes_preparing - 1)
+                    raise
+
+                if response is None:
+                    self.state.dishes_in_preparation.discard(dish_name)
+                    self.state.dishes_preparing = max(0, self.state.dishes_preparing - 1)
+                    failed += 1
+                    log(
+                        "SERVE",
+                        f"Preparazione prewarm fallita per '{dish_name}'",
+                        event="dish.prepare.failed",
+                        level="ERROR",
+                        dish_name=dish_name,
+                        reason="serving_prewarm",
+                    )
+                    return
+
+                submitted += 1
+                log(
+                    "SERVE",
+                    f"'{dish_name}' messo in preparazione",
+                    event="dish.prepare.submitted",
+                    dish_name=dish_name,
+                    reason="serving_prewarm",
+                )
+
+        try:
+            await asyncio.gather(*(_prepare_one(name) for name in dish_names))
+        except asyncio.CancelledError:
+            log(
+                "SERVE",
+                (
+                    "Prewarm interrotto: "
+                    f"richiesti={requested}, inviati={submitted}, skipped={skipped}, falliti={failed}"
+                ),
+                event="dish.prepare.prewarm.cancelled",
+                requested=requested,
+                submitted=submitted,
+                skipped=skipped,
+                failed=failed,
+            )
+            raise
+
+        log(
+            "SERVE",
+            (
+                "Prewarm completato: "
+                f"richiesti={requested}, inviati={submitted}, skipped={skipped}, falliti={failed}"
+            ),
+            event="dish.prepare.prewarm.completed",
+            requested=requested,
+            submitted=submitted,
+            skipped=skipped,
+            failed=failed,
+        )
 
     @staticmethod
     def _recipe_key(name: str) -> str:
@@ -286,6 +586,49 @@ class PhaseRunner:
         total = int(row.get("total_requests", 0) or 0)
         executed = int(row.get("executed_requests", 0) or 0)
         return (unserved * 5) + (total * 2) + executed
+
+    def _select_dishes_for_prewarm(
+        self,
+        menu_items: list[dict[str, Any]],
+        *,
+        demand_map: dict[str, dict[str, int]],
+        target_count: int,
+    ) -> list[str]:
+        if target_count <= 0:
+            return []
+
+        ranked: list[tuple[int, int, int, str]] = []
+        for item in menu_items:
+            dish_name = str(item.get("name", "")).strip()
+            if not dish_name:
+                continue
+
+            row = demand_map.get(self._recipe_key(dish_name), {})
+            unserved = int(row.get("unserved_requests", 0) or 0)
+            total = int(row.get("total_requests", 0) or 0)
+            executed = int(row.get("executed_requests", 0) or 0)
+            demand_score = (unserved * 6) + (total * 2) + executed
+
+            try:
+                price = int(item.get("price", 0))
+            except (TypeError, ValueError):
+                price = 0
+            volume_bias = max(0, 250 - max(0, price))
+            score = (demand_score * 1000) + volume_bias
+            ranked.append((score, demand_score, volume_bias, dish_name))
+
+        ranked.sort(key=lambda row: (row[0], row[1], row[2], row[3]), reverse=True)
+
+        selected: list[str] = []
+        seen: set[str] = set()
+        for _, _, _, dish_name in ranked:
+            if dish_name in seen:
+                continue
+            selected.append(dish_name)
+            seen.add(dish_name)
+            if len(selected) >= target_count:
+                break
+        return selected
 
     def _build_competitor_price_index(
         self,
@@ -629,6 +972,150 @@ class PhaseRunner:
             )
         return output
 
+    def _select_single_fallback_recipe(
+        self,
+        *,
+        all_recipes: list[dict[str, Any]],
+        demand_map: dict[str, dict[str, int]],
+    ) -> dict[str, Any] | None:
+        """
+        Build an emergency fallback plan based on a single recipe:
+        prioritize demand signal, then low ingredient complexity.
+        """
+        ranked: list[tuple[int, int, int, int, dict[str, Any]]] = []
+        for recipe in all_recipes:
+            recipe_name = str(recipe.get("name", "")).strip()
+            if not recipe_name:
+                continue
+            ingredients = recipe_ingredients(recipe)
+            if not ingredients:
+                continue
+            demand_score = self._demand_priority(recipe_name, demand_map)
+            total_qty = sum(max(1, int(qty)) for qty in ingredients.values())
+            distinct_count = len(ingredients)
+            try:
+                prestige = int(recipe.get("prestige", 50))
+            except (TypeError, ValueError):
+                prestige = 50
+            ranked.append((demand_score, -total_qty, -distinct_count, prestige, recipe))
+
+        if not ranked:
+            return None
+
+        ranked.sort(
+            key=lambda row: (row[0], row[1], row[2], row[3]),
+            reverse=True,
+        )
+        return ranked[0][4]
+
+    def _concentrate_recipe_pool(
+        self,
+        selected_recipes: list[dict[str, Any]],
+        *,
+        max_size: int,
+    ) -> list[dict[str, Any]]:
+        """
+        Reduce recipe breadth while maximizing ingredient overlap.
+        Useful after stockout / low fill-rate so auction quantities concentrate
+        on a smaller shared ingredient set.
+        """
+        target_size = max(1, int(max_size))
+        if len(selected_recipes) <= target_size:
+            return selected_recipes
+
+        ranked = sorted(
+            selected_recipes,
+            key=lambda r: int(r.get("prestige", 0) or 0),
+            reverse=True,
+        )
+        chosen = [ranked[0]]
+        used = {self._recipe_key(ranked[0].get("name", ""))}
+        covered = set(recipe_ingredients(ranked[0]).keys())
+
+        while len(chosen) < target_size:
+            best_recipe: dict[str, Any] | None = None
+            best_score: tuple[int, int, int] | None = None
+            for recipe in ranked:
+                key = self._recipe_key(recipe.get("name", ""))
+                if not key or key in used:
+                    continue
+                ingredients = set(recipe_ingredients(recipe).keys())
+                overlap = len(ingredients & covered)
+                prestige = int(recipe.get("prestige", 0) or 0)
+                score = (overlap, len(ingredients), prestige)
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_recipe = recipe
+
+            if best_recipe is None:
+                break
+
+            chosen.append(best_recipe)
+            used.add(self._recipe_key(best_recipe.get("name", "")))
+            covered.update(recipe_ingredients(best_recipe).keys())
+
+        return chosen
+
+    def _derive_turn_budget_policy(self, *, balance: float) -> dict[str, Any]:
+        """
+        Build a budget policy for closed-bid using game economy assumptions:
+        start credits + fixed credits gain each turn.
+        """
+        turn_id = max(1, int(self.state.current_turn_id or 1))
+        expected_balance = float(
+            int(self.config.initial_credits)
+            + max(0, turn_id - 1) * int(self.config.credits_per_turn_income)
+        )
+        wealth_ratio = float(balance) / max(1.0, expected_balance)
+        cap_cfg = float(self.config.turn_spend_cap)
+        max_recipes = max(1, int(self.config.max_target_recipes))
+        base_floor = max(0.0, min(1.0, float(self.config.auction_spend_floor_ratio)))
+
+        low_balance_trigger = max(float(self.config.initial_credits) * 0.5, cap_cfg * 0.30)
+        expansion_trigger = max(cap_cfg * 1.5, expected_balance * 0.30)
+        monopoly_trigger = max(cap_cfg * 3.0, expected_balance * 0.60)
+
+        mode = "growth"
+        cap_ratio = 0.85
+        balance_guard_ratio = 0.78
+        floor_ratio = max(0.82, base_floor * 0.92)
+        recipe_ratio = 0.95
+
+        if balance <= low_balance_trigger or wealth_ratio < 0.15:
+            mode = "survival"
+            cap_ratio = 0.70
+            balance_guard_ratio = 0.70
+            floor_ratio = max(0.70, base_floor * 0.85)
+            recipe_ratio = 0.80
+        elif balance >= monopoly_trigger or (wealth_ratio >= 0.90 and balance >= cap_cfg * 3.0):
+            mode = "monopoly"
+            cap_ratio = 1.00
+            balance_guard_ratio = 0.90
+            floor_ratio = max(base_floor, 0.97)
+            recipe_ratio = 1.00
+        elif balance >= expansion_trigger or wealth_ratio >= 0.55:
+            mode = "expansion"
+            cap_ratio = 0.95
+            balance_guard_ratio = 0.82
+            floor_ratio = max(base_floor, 0.90)
+            recipe_ratio = 1.00
+
+        cap_from_mode = cap_cfg * cap_ratio
+        cap_from_balance = max(100.0, float(balance) * balance_guard_ratio)
+        turn_budget_cap = int(max(100.0, min(cap_cfg, cap_from_mode, cap_from_balance)))
+        recipe_cap = max(6, min(max_recipes, int(round(max_recipes * recipe_ratio))))
+        if mode in {"expansion", "monopoly"}:
+            recipe_cap = max_recipes
+
+        return {
+            "mode": mode,
+            "turn_budget_cap": turn_budget_cap,
+            "floor_ratio": max(0.0, min(1.0, floor_ratio)),
+            "recipe_cap": recipe_cap,
+            "expected_balance": expected_balance,
+            "wealth_ratio": wealth_ratio,
+        }
+
     def _derive_dynamic_bid_bounds(
         self,
         *,
@@ -644,6 +1131,8 @@ class PhaseRunner:
         floor = max(1, int(self.config.min_ingredient_bid))
         ceil = max(floor + 1, int(self.config.max_ingredient_bid))
         amounts: list[int] = []
+        source = "fallback"
+        max_amount = 0
         if trend_plan is not None:
             for row in getattr(trend_plan, "bids", {}).values():
                 try:
@@ -652,6 +1141,8 @@ class PhaseRunner:
                     continue
                 if amount > 0:
                     amounts.append(amount)
+                    if amount > max_amount:
+                        max_amount = amount
 
         if amounts:
             amounts.sort()
@@ -660,19 +1151,86 @@ class PhaseRunner:
             # Closed-bid must maximize ingredient coverage: keep trend prices
             # competitive (no down-scaling).
             effective_min = max(floor, min(ceil - 2, max(1, median)))
-            effective_max = min(ceil, max(effective_min + 2, max(2, p75)))
+            effective_max = min(ceil, max(effective_min + 2, max(2, p75, max_amount)))
+            source = "trend_plan"
         else:
             fallback_by_direction = {
-                TrendDirection.LOW_COST: (4, 12),
-                TrendDirection.BALANCED: (8, 18),
-                TrendDirection.HIGH_COST: (12, 30),
+                TrendDirection.LOW_COST: (
+                    max(4, int(round(ceil * 0.20))),
+                    max(12, int(round(ceil * 0.45))),
+                ),
+                TrendDirection.BALANCED: (
+                    max(8, int(round(ceil * 0.35))),
+                    max(18, int(round(ceil * 0.70))),
+                ),
+                TrendDirection.HIGH_COST: (
+                    max(12, int(round(ceil * 0.50))),
+                    max(30, int(round(ceil * 0.95))),
+                ),
             }
             fallback_min, fallback_max = fallback_by_direction[trend_direction]
             effective_min = max(floor, int(fallback_min))
             effective_max = min(ceil, max(effective_min + 2, int(fallback_max)))
+            source = "fallback"
+
+        market_anchor = 0.0
+        if float(self.state.observed_unit_price_ema or 0.0) > 0:
+            market_anchor = float(self.state.observed_unit_price_ema)
+        elif float(self.state.observed_unit_price_avg or 0.0) > 0:
+            market_anchor = float(self.state.observed_unit_price_avg)
+
+        if market_anchor > 0:
+            anchor_offsets = {
+                TrendDirection.LOW_COST: (0, 4),
+                TrendDirection.BALANCED: (1, 6),
+                TrendDirection.HIGH_COST: (2, 10),
+            }
+            off_min, off_max = anchor_offsets[trend_direction]
+            anchor_min = max(1, int(round(market_anchor + off_min)))
+            anchor_max = max(anchor_min + 2, int(round(market_anchor + off_max)))
+
+            if amounts:
+                effective_min = int(round((effective_min * 0.60) + (anchor_min * 0.40)))
+                effective_max = int(round((effective_max * 0.60) + (anchor_max * 0.40)))
+                source = "trend_plan+market_anchor"
+            else:
+                effective_min = anchor_min
+                effective_max = anchor_max
+                source = "market_anchor"
+
+        fill_ema = float(self.state.auction_fill_rate_ema or 1.0)
+        shortage_streak = int(self.state.auction_shortage_streak or 0)
+        stockout_last_turn = bool(self.state.menu_stockout_last_turn)
+        aggressiveness_bonus = 0
+        if fill_ema < 0.45:
+            aggressiveness_bonus += 6
+        elif fill_ema < 0.60:
+            aggressiveness_bonus += 4
+        elif fill_ema < 0.75:
+            aggressiveness_bonus += 2
+        aggressiveness_bonus += min(4, max(0, shortage_streak))
+        if stockout_last_turn:
+            aggressiveness_bonus += 4
+
+        if aggressiveness_bonus > 0:
+            effective_min += max(1, aggressiveness_bonus // 2)
+            effective_max += aggressiveness_bonus
+            source = f"{source}+fill_rate_boost"
+
+        # Stockout override: when last turn had no feasible menu, force
+        # near-ceiling bids to recover inventory through closed-bid.
+        if stockout_last_turn and ceil > floor:
+            stockout_min = max(floor, int(round(ceil * 0.65)))
+            effective_min = max(effective_min, stockout_min)
+            effective_max = ceil
+            source = f"{source}+stockout_override"
+
+        effective_min = max(floor, min(ceil, int(effective_min)))
+        effective_max = max(effective_min + 1, int(effective_max))
+        effective_max = min(ceil, effective_max)
 
         if effective_max <= effective_min:
-            effective_max = min(ceil, effective_min + 2)
+            effective_max = min(ceil, effective_min + 1)
             if effective_max <= effective_min:
                 effective_max = effective_min
 
@@ -682,11 +1240,18 @@ class PhaseRunner:
             event="bid.bounds.dynamic",
             effective_min=effective_min,
             effective_max=effective_max,
-            source="trend_plan" if amounts else "fallback",
+            source=source,
             samples=len(amounts),
             trend_direction=trend_direction.value,
             config_floor=floor,
             config_ceil=ceil,
+            market_anchor=round(market_anchor, 4),
+            market_anchor_turn_id=int(self.state.observed_unit_price_turn_id or 0),
+            auction_fill_rate_ema=round(fill_ema, 6),
+            auction_shortage_streak=shortage_streak,
+            menu_stockout_last_turn=stockout_last_turn,
+            aggressiveness_bonus=aggressiveness_bonus,
+            trend_max_amount=max_amount,
         )
         return effective_min, effective_max
 
@@ -810,8 +1375,45 @@ class PhaseRunner:
         self._set_phase_context("closed_bid")
         log("PHASE", f"Turno {self.state.current_turn_id}: fase offerta chiusa", event="phase.started")
 
-        await self._ensure_trend_plan_for_current_turn()
+        current_turn = int(self.state.current_turn_id or 0)
         trend_plan = self.state.next_turn_trend_plan
+        if trend_plan is None:
+            log(
+                "TREND",
+                f"Nessun trend plan precomputato per turno {current_turn}: fallback locale immediato",
+                event="trend.plan.missing_for_turn",
+                level="WARN",
+                source_turn_id=current_turn - 1,
+                target_turn_id=current_turn,
+            )
+        elif int(trend_plan.target_turn_id) != current_turn:
+            log(
+                "TREND",
+                (
+                    "Trend plan non allineato al turno corrente: "
+                    f"target={trend_plan.target_turn_id}, current={current_turn}. "
+                    "Uso fallback locale."
+                ),
+                event="trend.plan.target_mismatch",
+                level="WARN",
+                source_turn_id=int(trend_plan.source_turn_id),
+                target_turn_id=int(trend_plan.target_turn_id),
+                current_turn_id=current_turn,
+            )
+            if int(trend_plan.target_turn_id) < current_turn:
+                self.state.next_turn_trend_plan = None
+            trend_plan = None
+        else:
+            log(
+                "TREND",
+                (
+                    f"Uso trend plan precomputato: "
+                    f"source={trend_plan.source_turn_id} -> target={trend_plan.target_turn_id}"
+                ),
+                event="trend.plan.used_precomputed",
+                source_turn_id=int(trend_plan.source_turn_id),
+                target_turn_id=int(trend_plan.target_turn_id),
+            )
 
         # 1. Determine trend direction
         trend_direction = analyze_trend_direction(trend_plan)
@@ -822,6 +1424,38 @@ class PhaseRunner:
         all_recipes = sorted(all_recipes, key=lambda r: r.get("prestige", 0), reverse=True)
         self.state.all_recipes = all_recipes
         demand_map = await self._load_previous_turn_demand()
+        restaurant_info = await self.api_client.get_restaurant_info()
+        try:
+            balance = float(restaurant_info.get("balance", restaurant_info.get("credits", 0)) or 0)
+        except (TypeError, ValueError, AttributeError):
+            balance = 0.0
+        budget_policy = self._derive_turn_budget_policy(balance=balance)
+        self.state.budget_mode = str(budget_policy["mode"])
+        self.state.turn_budget_cap_effective = int(budget_policy["turn_budget_cap"])
+        self.state.auction_spend_floor_ratio_effective = float(budget_policy["floor_ratio"])
+        self.state.target_recipe_cap_effective = int(budget_policy["recipe_cap"])
+        effective_recipe_cap = max(
+            1,
+            int(self.state.target_recipe_cap_effective or self.config.max_target_recipes),
+        )
+        log(
+            "BID",
+            (
+                f"Policy budget={self.state.budget_mode}: "
+                f"cap_turno={self.state.turn_budget_cap_effective}cr, "
+                f"floor_ratio={self.state.auction_spend_floor_ratio_effective:.2f}, "
+                f"recipe_cap={effective_recipe_cap}, "
+                f"wealth={budget_policy['wealth_ratio']:.2f}x"
+            ),
+            event="budget.policy.selected",
+            budget_mode=self.state.budget_mode,
+            turn_budget_cap_effective=self.state.turn_budget_cap_effective,
+            auction_spend_floor_ratio_effective=self.state.auction_spend_floor_ratio_effective,
+            target_recipe_cap_effective=effective_recipe_cap,
+            expected_balance=round(float(budget_policy["expected_balance"]), 2),
+            wealth_ratio=round(float(budget_policy["wealth_ratio"]), 6),
+            current_balance=round(balance, 2),
+        )
 
         # 2b. Build target recipe set:
         #     - prefer trend plan menu recipes (to cover recommended price/user bands)
@@ -848,7 +1482,7 @@ class PhaseRunner:
                 if recipe is not None:
                     selected.append(recipe)
                     seen_names.add(name)
-                if len(selected) >= self.config.max_target_recipes:
+                if len(selected) >= effective_recipe_cap:
                     break
 
             if selected:
@@ -868,10 +1502,16 @@ class PhaseRunner:
                     level="WARN",
                 )
 
-        # Even when trend recipes are present, expand breadth with demand-driven choices.
-        if selected and demand_map and len(selected) < self.config.max_target_recipes:
+        trend_guided_mode = bool(trend_plan is not None and trend_plan.menu and selected)
+
+        # Keep trend as primary signal. Demand expansion is intentionally limited
+        # in trend-guided mode to avoid random drift.
+        if selected and demand_map and len(selected) < effective_recipe_cap:
             selected_names = {self._recipe_key(r.get("name", "")) for r in selected}
             added_from_demand = 0
+            max_demand_additions = max(0, effective_recipe_cap - len(selected))
+            if trend_guided_mode:
+                max_demand_additions = min(1, max_demand_additions)
             for recipe_name, _ in sorted(
                 demand_map.items(),
                 key=lambda item: self._demand_priority(item[0], demand_map),
@@ -886,7 +1526,7 @@ class PhaseRunner:
                 selected.append(recipe)
                 selected_names.add(key)
                 added_from_demand += 1
-                if len(selected) >= self.config.max_target_recipes:
+                if added_from_demand >= max_demand_additions or len(selected) >= effective_recipe_cap:
                     break
             if added_from_demand > 0:
                 log(
@@ -907,7 +1547,7 @@ class PhaseRunner:
                 if recipe is None:
                     continue
                 selected.append(recipe)
-                if len(selected) >= self.config.max_target_recipes:
+                if len(selected) >= effective_recipe_cap:
                     break
             if selected:
                 log(
@@ -920,17 +1560,80 @@ class PhaseRunner:
         if not selected:
             selected = select_prestige_balanced_recipes(all_recipes, trend_direction)
 
-        # Guarantee low/mid/high coverage when possible.
-        selected = self._enforce_tier_coverage(selected, all_recipes=all_recipes)
-        selected = self._top_up_recipe_pool(
-            selected,
+        # Emergency fallback plan: keep one deterministic recipe to concentrate
+        # ingredient collection if trend execution becomes infeasible.
+        fallback_recipe = self._select_single_fallback_recipe(
             all_recipes=all_recipes,
-            trend_direction=trend_direction,
-            minimum_size=self.config.max_target_recipes,
+            demand_map=demand_map,
         )
+        if fallback_recipe is not None:
+            fallback_name = str(fallback_recipe.get("name", "")).strip()
+            selected_names = {self._recipe_key(r.get("name", "")) for r in selected}
+            if fallback_name and self._recipe_key(fallback_name) not in selected_names:
+                if len(selected) >= effective_recipe_cap and selected:
+                    removed = selected.pop(-1)
+                    log(
+                        "BID",
+                        (
+                            "Fallback ricetta inserita sostituendo una ricetta secondaria: "
+                            f"out='{removed.get('name', '')}', in='{fallback_name}'"
+                        ),
+                        event="bid.recipe_pool.fallback_replaced",
+                        removed_recipe=str(removed.get("name", "")),
+                        fallback_recipe=fallback_name,
+                    )
+                selected.append(fallback_recipe)
+                log(
+                    "BID",
+                    f"Piano fallback pronto: 1 ricetta di backup '{fallback_name}'",
+                    event="bid.recipe_pool.fallback_added",
+                    fallback_recipe=fallback_name,
+                )
+
+        # In trend-guided mode avoid broad random diversification.
+        if not trend_guided_mode:
+            selected = self._enforce_tier_coverage(selected, all_recipes=all_recipes)
+            selected = self._top_up_recipe_pool(
+                selected,
+                all_recipes=all_recipes,
+                trend_direction=trend_direction,
+                minimum_size=effective_recipe_cap,
+            )
+        else:
+            log(
+                "BID",
+                "Modalita trend-guided: disattivo top-up ampio ricette",
+                event="bid.recipe_pool.trend_guided",
+                selected_count=len(selected),
+                recipe_cap=effective_recipe_cap,
+            )
+        shortage_mode = bool(self.state.menu_stockout_last_turn) or (
+            float(self.state.auction_fill_rate_ema or 1.0) < 0.60
+        )
+        should_concentrate = (
+            shortage_mode
+            and str(self.state.budget_mode or "growth") == "survival"
+            and effective_recipe_cap > 8
+        )
+        if should_concentrate:
+            focus_size = min(
+                effective_recipe_cap,
+                max(8, int(round(effective_recipe_cap * 0.75))),
+            )
+            focused = self._concentrate_recipe_pool(selected, max_size=focus_size)
+            if len(focused) < len(selected):
+                log(
+                    "BID",
+                    f"Concentrazione ricette per asta aggressiva: {len(selected)} → {len(focused)}",
+                    event="bid.recipe_pool.concentrated",
+                    before_count=len(selected),
+                    after_count=len(focused),
+                    focus_size=focus_size,
+                )
+            selected = focused
 
         # Respect configured cap.
-        self.state.target_recipes = selected[: self.config.max_target_recipes]
+        self.state.target_recipes = selected[:effective_recipe_cap]
 
         if not self.state.target_recipes:
             log(
@@ -985,23 +1688,48 @@ class PhaseRunner:
         # Add a safety buffer on quantities so closed-bid covers recipes even
         # when auction matching is partial.
         extra_units = 0
+        min_qty_by_mode = {
+            "survival": 1,
+            "growth": 2,
+            "expansion": 3,
+            "monopoly": 4,
+        }
+        min_qty_per_ingredient = int(
+            min_qty_by_mode.get(str(self.state.budget_mode or "growth"), 2)
+        )
+        aggressive_quantity_mode = bool(self.state.menu_stockout_last_turn) or (
+            float(self.state.auction_fill_rate_ema or 1.0) < 0.60
+        )
         for row in bids:
-            qty = max(1, int(row.get("quantity", 1)))
-            boost = max(1, qty // 3)
+            qty = max(min_qty_per_ingredient, int(row.get("quantity", 1)))
+            if aggressive_quantity_mode:
+                boost = max(3, qty)
+            else:
+                boost = max(1, int(math.ceil(qty * 0.50)))
             new_qty = qty + boost
             row["quantity"] = new_qty
             extra_units += new_qty - qty
         if extra_units > 0:
             log(
                 "BID",
-                f"Buffer quantità closed_bid applicato: +{extra_units} unità",
+                (
+                    f"Buffer quantità closed_bid applicato: +{extra_units} unità "
+                    f"(mode={'aggressive' if aggressive_quantity_mode else 'standard'}, "
+                    f"min_qty={min_qty_per_ingredient})"
+                ),
                 event="bid.quantity.buffer_applied",
                 extra_units=extra_units,
+                aggressive_mode=aggressive_quantity_mode,
+                min_qty_per_ingredient=min_qty_per_ingredient,
             )
         self.state.ingredient_bids = bid_map
 
         # Breadth guardrail: keep line-count within what the budget can sustain.
-        max_affordable_lines = max(1, int(self.config.turn_spend_cap // max(1, effective_min_bid)))
+        turn_spend_cap_effective = max(
+            100,
+            int(self.state.turn_budget_cap_effective or self.config.turn_spend_cap),
+        )
+        max_affordable_lines = max(1, int(turn_spend_cap_effective // max(1, effective_min_bid)))
         if len(bids) > max_affordable_lines:
             bids.sort(
                 key=lambda row: (
@@ -1091,11 +1819,12 @@ class PhaseRunner:
                     error_message=str(exc),
                 )
 
-        await self._ensure_trend_plan_for_current_turn()
         demand_map = await self._load_previous_turn_demand()
 
         trend_direction = self.state.trend_direction or TrendDirection.BALANCED
         trend_plan = self.state.next_turn_trend_plan
+        if trend_plan is not None and int(trend_plan.target_turn_id) != int(self.state.current_turn_id or 0):
+            trend_plan = None
         effective_min_bid = int(self.state.bid_min_effective or self.config.min_ingredient_bid)
         trend_price_by_name: dict[str, int] = {}
         if trend_plan is not None:
@@ -1105,7 +1834,7 @@ class PhaseRunner:
                 except (KeyError, TypeError, ValueError):
                     continue
 
-        spend_cap = int(self.config.turn_spend_cap)
+        spend_cap = int(self.state.turn_budget_cap_effective or self.config.turn_spend_cap)
         auction_spend = int(self.state.auction_spend_total or self.state.closed_bid_planned_spend)
         remaining_market_budget = max(0, spend_cap - auction_spend)
         log(
@@ -1122,7 +1851,13 @@ class PhaseRunner:
 
         # Buy missing ingredients from market for bid targets, respecting remaining turn budget.
         self.state.market_spend_total = 0
-        if self.state.target_recipes and remaining_market_budget > 0:
+        if self.config.auction_only_mode:
+            log(
+                "MARKET",
+                "Auction-only mode attivo: skip acquisti mercato",
+                event="market.buy.skipped.auction_only",
+            )
+        elif self.state.target_recipes and remaining_market_budget > 0:
             try:
                 bought, market_spend = await buy_missing_ingredients(
                     self.mcp_gateway,
@@ -1224,6 +1959,60 @@ class PhaseRunner:
             self.state.dishes_ready = {}
             self.state.dishes_preparing = 0
             self.state.dishes_in_preparation = set()
+            self.state.menu_stockout_last_turn = True
+
+            current_turn_id = int(self.state.current_turn_id or 0)
+            if self.config.stockout_liquidation_enabled:
+                if current_turn_id > 0 and int(self.state.stockout_liquidation_turn_id or 0) != current_turn_id:
+                    try:
+                        liquidation = await liquidate_inventory_on_stockout(
+                            api_client=self.api_client,
+                            mcp_gateway=self.mcp_gateway,
+                            inventory=inventory,
+                            ingredient_bids=self.state.ingredient_bids,
+                            default_price=effective_min_bid,
+                            min_sell_price=int(self.config.stockout_sell_min_price),
+                        )
+                        self.state.stockout_liquidation_turn_id = current_turn_id
+                        log(
+                            "MARKET",
+                            (
+                                "Liquidazione stockout completata: "
+                                f"sold={liquidation.get('sold_units', 0)}, "
+                                f"listed={liquidation.get('listed_units', 0)}, "
+                                f"failed_tx={liquidation.get('failed_transactions', 0)}, "
+                                f"failed_listing={liquidation.get('failed_entries', 0)}"
+                            ),
+                            event="market.sell.stockout.summary",
+                            sold_units=int(liquidation.get("sold_units", 0) or 0),
+                            listed_units=int(liquidation.get("listed_units", 0) or 0),
+                            failed_transactions=int(liquidation.get("failed_transactions", 0) or 0),
+                            failed_entries=int(liquidation.get("failed_entries", 0) or 0),
+                            estimated_revenue=int(liquidation.get("estimated_revenue", 0) or 0),
+                        )
+                    except Exception as exc:
+                        log(
+                            "MARKET",
+                            f"Liquidazione stockout fallita: {exc}",
+                            event="market.sell.stockout.failed",
+                            level="ERROR",
+                            error_type=type(exc).__name__,
+                            error_message=str(exc),
+                        )
+                else:
+                    log(
+                        "MARKET",
+                        "Liquidazione stockout gia tentata in questo turno: skip",
+                        event="market.sell.stockout.skipped.already_attempted",
+                        source_turn_id=current_turn_id,
+                    )
+            else:
+                log(
+                    "MARKET",
+                    "Liquidazione stockout disabilitata da configurazione",
+                    event="market.sell.stockout.skipped.disabled",
+                )
+
             await self.mcp_gateway.call_tool("update_restaurant_is_open", {"is_open": False})
             log(
                 "MENU",
@@ -1235,6 +2024,7 @@ class PhaseRunner:
 
         self._enforce_price_ladder(menu_items, recipe_meta=recipe_meta)
 
+        self.state.menu_stockout_last_turn = False
         self.state.active_menu = menu_items
         self.state.dishes_ready = {str(item["name"]): False for item in menu_items if item.get("name")}
         self.state.dishes_preparing = 0
@@ -1275,22 +2065,51 @@ class PhaseRunner:
         self._set_phase_context("serving")
         log("PHASE", f"Turno {self.state.current_turn_id}: fase servizio", event="phase.started")
 
-        try:
+        skip_seller_after_stockout = (
+            not self.state.active_menu
+            and int(self.state.stockout_liquidation_turn_id or 0) == int(self.state.current_turn_id or 0)
+        )
+        if skip_seller_after_stockout:
             log(
                 "SELLER",
-                f"Avvio seller surplus per turno {self.state.current_turn_id}",
-                event="seller.started",
+                "Skip seller LLM: liquidazione stockout gia eseguita in waiting",
+                event="seller.skipped.stockout_already_liquidated",
+                source_turn_id=self.state.current_turn_id,
             )
-            await self.run_seller_agent_fn(self.state.current_turn_id or 0)
-            log("SELLER", "Seller surplus completato", event="seller.completed")
-        except Exception as exc:
-            log(
-                "ERROR",
-                f"Seller agent failed: {exc}",
-                event="seller.failed",
-                error_type=type(exc).__name__,
-                error_message=str(exc),
-            )
+        else:
+            try:
+                log(
+                    "SELLER",
+                    f"Avvio seller surplus per turno {self.state.current_turn_id}",
+                    event="seller.started",
+                )
+                seller_timeout = max(2, int(self.config.seller_timeout_seconds))
+                try:
+                    await asyncio.wait_for(
+                        self.run_seller_agent_fn(self.state.current_turn_id or 0),
+                        timeout=seller_timeout,
+                    )
+                except asyncio.TimeoutError:
+                    log(
+                        "SELLER",
+                        (
+                            "Seller timeout: superati "
+                            f"{seller_timeout}s, continuo la fase serving senza attenderlo"
+                        ),
+                        event="seller.timeout",
+                        level="WARN",
+                        timeout_seconds=seller_timeout,
+                        source_turn_id=self.state.current_turn_id,
+                    )
+                log("SELLER", "Seller surplus completato", event="seller.completed")
+            except Exception as exc:
+                log(
+                    "ERROR",
+                    f"Seller agent failed: {exc}",
+                    event="seller.failed",
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
+                )
 
         if not self.state.active_menu:
             await self.mcp_gateway.call_tool("update_restaurant_is_open", {"is_open": False})
@@ -1304,8 +2123,8 @@ class PhaseRunner:
 
         log(
             "SERVE",
-            "Preparazione on-demand attiva: i piatti verranno preparati all'arrivo del cliente",
-            event="dish.prepare.mode.on_demand",
+            "Preparazione ibrida attiva: prewarm iniziale + on-demand agli ordini",
+            event="dish.prepare.mode.hybrid",
             menu_size=len(self.state.active_menu),
         )
         menu_snapshot_parts: list[str] = []
@@ -1331,6 +2150,72 @@ class PhaseRunner:
                 menu_size=len(menu_snapshot_parts),
             )
 
+        menu_size = len(self.state.active_menu)
+        prewarm_fraction = float(self.config.prewarm_menu_fraction)
+        prewarm_target = 0
+        if prewarm_fraction > 0:
+            prewarm_target = max(1, int(math.ceil(menu_size * prewarm_fraction)))
+        prewarm_target = min(menu_size, prewarm_target)
+
+        if prewarm_target <= 0:
+            log(
+                "SERVE",
+                "Prewarm disattivato da configurazione",
+                event="dish.prepare.prewarm.skipped.disabled",
+                prewarm_fraction=prewarm_fraction,
+                menu_size=menu_size,
+            )
+            return
+
+        previous_turn = int(self.state.current_turn_id or 0) - 1
+        demand_map: dict[str, dict[str, int]] = {}
+        if (
+            self.state.previous_turn_demand
+            and int(self.state.previous_turn_demand_turn_id) == previous_turn
+        ):
+            demand_map = self.state.previous_turn_demand
+
+        prewarm_dishes = self._select_dishes_for_prewarm(
+            self.state.active_menu,
+            demand_map=demand_map,
+            target_count=prewarm_target,
+        )
+        if not prewarm_dishes:
+            log(
+                "SERVE",
+                "Prewarm saltato: nessun piatto candidabile",
+                event="dish.prepare.prewarm.skipped.empty",
+                menu_size=menu_size,
+                target_count=prewarm_target,
+            )
+            return
+
+        preview = " | ".join(prewarm_dishes[:12])
+        if len(prewarm_dishes) > 12:
+            preview = f"{preview} | ... (+{len(prewarm_dishes) - 12} piatti)"
+
+        log(
+            "SERVE",
+            (
+                f"Prewarm pianificato: {len(prewarm_dishes)}/{menu_size} piatti "
+                f"(target ~{prewarm_fraction:.0%}, concorrenza={self.config.prewarm_concurrency})"
+            ),
+            event="dish.prepare.prewarm.planned",
+            menu_size=menu_size,
+            target_count=prewarm_target,
+            scheduled_count=len(prewarm_dishes),
+            prewarm_fraction=prewarm_fraction,
+            prewarm_concurrency=self.config.prewarm_concurrency,
+            demand_signal="previous_turn" if demand_map else "price_bias",
+        )
+        log(
+            "SERVE",
+            f"Prewarm queue: {preview}",
+            event="dish.prepare.prewarm.queue",
+            queued_count=len(prewarm_dishes),
+        )
+        self._schedule_serving_prewarm(prewarm_dishes)
+
     async def end_turn(self) -> None:
         self._set_phase_context("stopped")
         log("PHASE", f"Turno {self.state.current_turn_id}: fine", event="phase.started")
@@ -1348,53 +2233,54 @@ class PhaseRunner:
                 event="tracker.save.skipped.firebase_unavailable",
                 level="WARN",
             )
-            return
-
-        try:
-            meals_data, menus_data = await asyncio.gather(
-                self.collect_turn_meals_fn(self.state.current_turn_id),
-                self.collect_all_menus_fn(),
-            )
-
-            tasks: list[Awaitable[Any]] = []
-            if meals_data:
-                tasks.append(
-                    asyncio.to_thread(
-                        self.save_meals_to_firebase_fn,
-                        db,
-                        self.state.current_turn_id,
-                        self.config.run_id,
-                        meals_data,
-                    )
+        else:
+            try:
+                meals_data, menus_data = await asyncio.gather(
+                    self.collect_turn_meals_fn(self.state.current_turn_id),
+                    self.collect_all_menus_fn(),
                 )
 
-            if menus_data:
-                tasks.append(
-                    asyncio.to_thread(
-                        self.save_menus_to_firebase_fn,
-                        db,
-                        self.state.current_turn_id,
-                        self.config.run_id,
-                        menus_data,
+                tasks: list[Awaitable[Any]] = []
+                if meals_data:
+                    tasks.append(
+                        asyncio.to_thread(
+                            self.save_meals_to_firebase_fn,
+                            db,
+                            self.state.current_turn_id,
+                            self.config.run_id,
+                            meals_data,
+                        )
                     )
-                )
 
-            if tasks:
-                await asyncio.gather(*tasks)
+                if menus_data:
+                    tasks.append(
+                        asyncio.to_thread(
+                            self.save_menus_to_firebase_fn,
+                            db,
+                            self.state.current_turn_id,
+                            self.config.run_id,
+                            menus_data,
+                        )
+                    )
+
+                if tasks:
+                    await asyncio.gather(*tasks)
+                    log(
+                        "TRACK",
+                        f"Dati turno salvati su Firebase ({len(tasks)} sezioni)",
+                        event="tracker.save.completed",
+                        saved_sections=len(tasks),
+                    )
+                else:
+                    log("TRACK", "no tracker payload to save", event="tracker.save.skipped.empty_payload", level="WARN")
+            except Exception as exc:
                 log(
                     "TRACK",
-                    f"Dati turno salvati su Firebase ({len(tasks)} sezioni)",
-                    event="tracker.save.completed",
-                    saved_sections=len(tasks),
+                    f"Errore salvataggio tracker: {exc}",
+                    event="tracker.save.failed",
+                    level="ERROR",
+                    error_type=type(exc).__name__,
+                    error_message=str(exc),
                 )
-            else:
-                log("TRACK", "no tracker payload to save", event="tracker.save.skipped.empty_payload", level="WARN")
-        except Exception as exc:
-            log(
-                "TRACK",
-                f"Errore salvataggio tracker: {exc}",
-                event="tracker.save.failed",
-                level="ERROR",
-                error_type=type(exc).__name__,
-                error_message=str(exc),
-            )
+
+        self._start_trend_prefetch_for_next_turn(source_turn_id=self.state.current_turn_id)

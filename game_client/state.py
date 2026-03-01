@@ -23,6 +23,18 @@ class GameState:
     closed_bid_planned_spend: int = 0
     auction_spend_total: int = 0
     market_spend_total: int = 0
+    turn_budget_cap_effective: int = 0
+    auction_spend_floor_ratio_effective: float = 0.0
+    target_recipe_cap_effective: int = 0
+    budget_mode: str = "balanced"
+    auction_fill_rate_last: float = 1.0
+    auction_fill_rate_ema: float = 1.0
+    auction_shortage_streak: int = 0
+    menu_stockout_last_turn: bool = False
+    observed_unit_price_avg: float = 0.0
+    observed_unit_price_ema: float = 0.0
+    observed_unit_price_turn_id: int = 0
+    stockout_liquidation_turn_id: int = 0
     ingredient_bids: dict[str, int] = field(default_factory=dict)
     previous_turn_demand: dict[str, dict[str, int]] = field(default_factory=dict)
     previous_turn_demand_turn_id: int = 0
@@ -43,6 +55,18 @@ class GameState:
         self.closed_bid_planned_spend = 0
         self.auction_spend_total = 0
         self.market_spend_total = 0
+        self.turn_budget_cap_effective = 0
+        self.auction_spend_floor_ratio_effective = 0.0
+        self.target_recipe_cap_effective = 0
+        self.budget_mode = "balanced"
+        self.auction_fill_rate_last = 1.0
+        self.auction_fill_rate_ema = 1.0
+        self.auction_shortage_streak = 0
+        self.menu_stockout_last_turn = False
+        self.observed_unit_price_avg = 0.0
+        self.observed_unit_price_ema = 0.0
+        self.observed_unit_price_turn_id = 0
+        self.stockout_liquidation_turn_id = 0
         self.ingredient_bids = {}
         self.previous_turn_demand = {}
         self.previous_turn_demand_turn_id = 0

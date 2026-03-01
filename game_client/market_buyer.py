@@ -16,7 +16,7 @@ from typing import Any
 from game_client.logging_utils import log
 from game_client.strategy import recipe_ingredients
 
-MAX_PRICE_MULTIPLIER = 1.5
+MAX_PRICE_MULTIPLIER = 2.5
 
 
 async def buy_missing_ingredients(

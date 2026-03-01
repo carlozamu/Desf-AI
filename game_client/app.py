@@ -114,15 +114,35 @@ async def main() -> None:
         (
             "Config caricata: "
             f"turn_spend_cap={config.turn_spend_cap}cr, "
+            f"initial_credits={config.initial_credits}cr, "
+            f"credits_per_turn_income={config.credits_per_turn_income}cr, "
+            f"auction_spend_floor_ratio={config.auction_spend_floor_ratio:.2f}, "
+            f"auction_only_mode={config.auction_only_mode}, "
             f"bid_range={config.min_ingredient_bid}-{config.max_ingredient_bid}, "
             f"max_target_recipes={config.max_target_recipes}, "
-            f"max_menu_items={config.max_menu_items}"
+            f"max_menu_items={config.max_menu_items}, "
+            f"prewarm_menu_fraction={config.prewarm_menu_fraction:.2f}, "
+            f"prewarm_concurrency={config.prewarm_concurrency}, "
+            f"seller_timeout_seconds={config.seller_timeout_seconds}, "
+            f"max_active_clients_before_close={config.max_active_clients_before_close}, "
+            f"stockout_liquidation_enabled={config.stockout_liquidation_enabled}, "
+            f"stockout_sell_min_price={config.stockout_sell_min_price}"
         ),
         event="app.config.loaded",
         turn_spend_cap=config.turn_spend_cap,
+        initial_credits=config.initial_credits,
+        credits_per_turn_income=config.credits_per_turn_income,
+        auction_spend_floor_ratio=config.auction_spend_floor_ratio,
+        auction_only_mode=config.auction_only_mode,
         min_ingredient_bid=config.min_ingredient_bid,
         max_ingredient_bid=config.max_ingredient_bid,
         max_target_recipes=config.max_target_recipes,
         max_menu_items=config.max_menu_items,
+        prewarm_menu_fraction=config.prewarm_menu_fraction,
+        prewarm_concurrency=config.prewarm_concurrency,
+        seller_timeout_seconds=config.seller_timeout_seconds,
+        max_active_clients_before_close=config.max_active_clients_before_close,
+        stockout_liquidation_enabled=config.stockout_liquidation_enabled,
+        stockout_sell_min_price=config.stockout_sell_min_price,
     )
     await listen_forever(config=config, dispatch_event_fn=event_router.dispatch_event)

@@ -1,0 +1,18 @@
+--- SERVING LOG (TURN 76) ---
+
+Cliente: Dorin Krell          | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Fenn Piper           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Jett Mora            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Lara Cairn           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Hana Slate           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Ember Eldridge       | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Uria Lune            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Hale Vorn            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Rami Varo            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Silas Mire           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Elda Moss            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Sable Fenn           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Luma Crest           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+
+--- REPORT VENDITE DEL TURNO ---
+Nessun ordine consegnato in questo turno.

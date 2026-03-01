@@ -5,6 +5,7 @@ from collections import defaultdict
 import re
 from typing import Any, Awaitable, Callable
 
+from game_client.client_agent import pick_dish_with_ai
 from game_client.config import ClientConfig
 from game_client.logging_utils import log, set_log_context
 from game_client.state import GameState
@@ -42,6 +43,7 @@ class EventRouter:
         self.turn_purchases: list[dict[str, Any]] = []
         self.turn_orders_log: list[dict[str, Any]] = []
         self._seen_purchase_lines: set[str] = set()
+        self._closed_for_client_overload: bool = False
 
         self.event_handlers: dict[str, Callable[[dict[str, Any]], Awaitable[None]]] = {
             "game_started": self.game_started,
@@ -128,6 +130,49 @@ class EventRouter:
         self._seen_purchase_lines = set()
         self.state.auction_spend_total = 0
 
+    async def _maybe_close_restaurant_for_client_overload(self) -> None:
+        threshold = max(0, int(self.config.max_active_clients_before_close))
+        if threshold <= 0:
+            return
+        if self.state.current_phase != "serving":
+            return
+        if self._closed_for_client_overload:
+            return
+
+        # Count only PENDING orders (not all-time seen clients)
+        pending_count = sum(len(q) for q in self.pending_orders.values())
+        clients_seen = pending_count
+        if clients_seen <= threshold:
+            return
+
+        response = await self.mcp_gateway.call_tool(
+            "update_restaurant_is_open",
+            {"is_open": False},
+        )
+        if response is None:
+            log(
+                "SERVE",
+                (
+                    "Tentativo chiusura per overload fallito: "
+                    f"clienti={clients_seen}, soglia={threshold}"
+                ),
+                event="serve.overload.close.failed",
+                level="WARN",
+                clients_seen=clients_seen,
+                threshold=threshold,
+            )
+            return
+
+        self._closed_for_client_overload = True
+        log(
+            "SERVE",
+            f"Ristorante chiuso per overload clienti ({clients_seen} > soglia {threshold})",
+            event="serve.overload.closed",
+            level="WARN",
+            clients_seen=clients_seen,
+            threshold=threshold,
+        )
+
     def _log_turn_sales_summary(self) -> None:
         total_revenue = 0
         delivered_orders = []
@@ -159,12 +204,15 @@ class EventRouter:
         by_ingredient: dict[str, dict[str, Any]] = {}
         total_qty = 0
         total_spend = 0
+        total_requested = 0
 
         for row in self.turn_purchases:
             ingredient = str(row["ingredient"])
+            requested = int(row["requested_qty"])
             qty = int(row["bought_qty"])
             total = int(row["total_price"])
             unit = int(row["unit_price"])
+            total_requested += max(0, requested)
             total_qty += qty
             total_spend += total
 
@@ -185,6 +233,55 @@ class EventRouter:
             total_quantity=total_qty,
             total_spend=total_spend,
         )
+
+        if total_qty > 0:
+            avg_unit_price = total_spend / total_qty
+            prev_ema = float(self.state.observed_unit_price_ema or 0.0)
+            if prev_ema > 0:
+                ema_unit_price = (prev_ema * 0.65) + (avg_unit_price * 0.35)
+            else:
+                ema_unit_price = avg_unit_price
+
+            self.state.observed_unit_price_avg = float(avg_unit_price)
+            self.state.observed_unit_price_ema = float(ema_unit_price)
+            self.state.observed_unit_price_turn_id = int(self.state.current_turn_id or 0)
+            log(
+                "BID",
+                (
+                    "Segnale prezzo mercato aggiornato: "
+                    f"media_turno={avg_unit_price:.2f}cr, ema={ema_unit_price:.2f}cr"
+                ),
+                event="bid.market_price.signal.updated",
+                avg_unit_price=round(avg_unit_price, 4),
+                ema_unit_price=round(ema_unit_price, 4),
+                source_turn_id=self.state.current_turn_id,
+            )
+
+        if total_requested > 0:
+            fill_rate = max(0.0, min(1.0, float(total_qty) / float(total_requested)))
+            prev_fill_ema = float(self.state.auction_fill_rate_ema or 1.0)
+            fill_rate_ema = (prev_fill_ema * 0.60) + (fill_rate * 0.40)
+            self.state.auction_fill_rate_last = fill_rate
+            self.state.auction_fill_rate_ema = fill_rate_ema
+            if fill_rate < 0.55:
+                self.state.auction_shortage_streak = min(6, int(self.state.auction_shortage_streak) + 1)
+            elif fill_rate > 0.80:
+                self.state.auction_shortage_streak = max(0, int(self.state.auction_shortage_streak) - 1)
+            log(
+                "BID",
+                (
+                    "Fill-rate asta aggiornato: "
+                    f"riempimento={fill_rate:.2%}, ema={fill_rate_ema:.2%}, "
+                    f"streak_scarsita={self.state.auction_shortage_streak}"
+                ),
+                event="bid.fill_rate.updated",
+                fill_rate=round(fill_rate, 6),
+                fill_rate_ema=round(fill_rate_ema, 6),
+                total_requested=total_requested,
+                total_bought=total_qty,
+                shortage_streak=int(self.state.auction_shortage_streak),
+                source_turn_id=self.state.current_turn_id,
+            )
 
         for ingredient in sorted(by_ingredient.keys()):
             agg = by_ingredient[ingredient]
@@ -305,8 +402,16 @@ class EventRouter:
         if dish_name in self.state.dishes_in_preparation:
             return
 
+        # Reserve the slot immediately to avoid duplicate prepare calls for the
+        # same dish while the MCP request is in flight.
+        self.state.dishes_in_preparation.add(dish_name)
+        self.state.dishes_preparing += 1
+        self.state.dishes_ready[dish_name] = False
+
         response = await self.mcp_gateway.call_tool("prepare_dish", {"dish_name": dish_name})
         if response is None:
+            self.state.dishes_in_preparation.discard(dish_name)
+            self.state.dishes_preparing = max(0, self.state.dishes_preparing - 1)
             log(
                 "SERVE",
                 f"Preparazione '{dish_name}' fallita",
@@ -317,9 +422,6 @@ class EventRouter:
             )
             return
 
-        self.state.dishes_in_preparation.add(dish_name)
-        self.state.dishes_preparing += 1
-        self.state.dishes_ready[dish_name] = False
         log(
             "SERVE",
             f"'{dish_name}' messo in preparazione",
@@ -363,6 +465,7 @@ class EventRouter:
         self.state.reset_for_game_start(turn_id)
         self.pending_orders.clear()
         self.turn_orders_log.clear()
+        self._closed_for_client_overload = False
         self._update_serving_log()
         self._reset_turn_purchase_tracking()
         set_log_context(turn_id=self.state.current_turn_id, phase=self.state.current_phase)
@@ -380,6 +483,8 @@ class EventRouter:
 
         phase = data.get("phase", "unknown")
         self.state.current_phase = str(phase)
+        if phase != "serving":
+            self._closed_for_client_overload = False
         set_log_context(turn_id=self.state.current_turn_id, phase=self.state.current_phase)
         log(
             "PHASE",
@@ -421,6 +526,7 @@ class EventRouter:
         self.state.current_phase = "stopped"
         self.pending_orders.clear()
         self.turn_orders_log.clear()
+        self._closed_for_client_overload = False
         self._reset_turn_purchase_tracking()
         set_log_context(phase=self.state.current_phase)
         log("EVENT", "Partita resettata", event="event.game_reset", event_data=data)
@@ -429,6 +535,7 @@ class EventRouter:
         client_name = str(data.get("clientName", data.get("name", "")))
         order_text = str(data.get("orderText", data.get("order", "")))
         self._add_order_log(client_name, order_text)
+        await self._maybe_close_restaurant_for_client_overload()
         log(
             "SERVE",
             f"Cliente '{client_name}' ordina: {order_text}",
@@ -437,9 +544,32 @@ class EventRouter:
             order_text=order_text,
         )
 
+        # Fast heuristic match first (no LLM call)
         dish_name, intolerances = pick_dish_for_order(
             order_text, self.state.active_menu, self.state.all_recipes
         )
+
+        # If heuristic fails, use AI agent to classify client and pick best dish
+        if not dish_name and self.state.active_menu:
+            log(
+                "AGENT",
+                f"Matching euristico fallito per '{client_name}' — uso AI agent",
+                event="client_agent.fallback.triggered",
+                client_name=client_name,
+                order_text=order_text,
+                menu_size=len(self.state.active_menu),
+            )
+            ai_dish, ai_intolerances = await pick_dish_with_ai(
+                order_text,
+                client_name,
+                self.state.active_menu,
+                all_recipes=self.state.all_recipes,
+            )
+            if ai_dish:
+                dish_name = ai_dish
+                # Merge intolerances from both sources
+                intolerances = list(set(intolerances) | set(ai_intolerances))
+
         if not dish_name:
             if intolerances:
                 self._update_order_log(client_name, "FAILED", reason=f"Intolleranza rilevata: {intolerances}")
@@ -456,10 +586,11 @@ class EventRouter:
                 self._update_order_log(client_name, "FAILED", reason="Nessun piatto corrispondente trovato nel menu")
                 log(
                     "SERVE",
-                    f"Nessun piatto per '{client_name}' (cerca: {order_text})",
+                    f"Nessun piatto per '{client_name}' (cerca: {order_text}, menu_size={len(self.state.active_menu)})",
                     event="serve.request.no_matching_dish",
                     client_name=client_name,
                     order_text=order_text,
+                    menu_size=len(self.state.active_menu),
                 )
             return
 
@@ -540,7 +671,7 @@ class EventRouter:
         log("SERVE", f"Piatto '{dish_name}' pronto ✓", event="dish.prepare.completed", dish_name=dish_name)
         self._log_ready_dishes_summary("post-preparation")
 
-        queue = self.pending_orders.get(dish_name) or []
+        queue = self.pending_orders.get(dish_name)
         if not queue:
             return
 
@@ -551,10 +682,14 @@ class EventRouter:
             client_name=next_order["client_name"],
         )
         if served:
-            queue.pop(0)
+            # Re-fetch queue reference after async call (may have changed)
+            queue = self.pending_orders.get(dish_name)
+            if queue and queue[0].get("client_id") == next_order["client_id"]:
+                queue.pop(0)
             if not queue:
                 self.pending_orders.pop(dish_name, None)
 
+        # Re-fetch again before triggering next preparation
         if self.pending_orders.get(dish_name):
             await self._prepare_on_demand(dish_name, reason="queued_client")
 

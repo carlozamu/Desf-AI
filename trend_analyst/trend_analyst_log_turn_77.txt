@@ -1,0 +1,55 @@
+--- TREND ANALYST LOG (TURN 77) ---
+
+**💥 HACKAPIZZA 2.0 – STRATEGIC INTELLIGENCE REPORT**  
+*Prepared for **Desf‑AI** (Restaurant ID 16). Turn 77 analysis – data from turns 75‑77.*
+
+---  
+
+## 1️⃣ 💰 CUSTOMER WILLINGNESS TO PAY (WTP)
+
+| Archetype | Typical spend (cr) | Dishes we already serve in this price band | What they *actually* buy (from all menus) | What they **ignore** (high‑value dishes NOT on our menu) |
+|-----------|-------------------|---------------------------------------------|-------------------------------------------|--------------------------------------------------------|
+| **🚀 Esploratore Galattico** (budget, fast) | **≈ 70‑90 cr** (cheap & quick) | Nebulosa Galattica (67), Galaxia Gustativa (95), Il Crepuscolo dell’Unicorno (84) | Mostly cheap‑ish “comfort” dishes: **Pizza Fra (133), Pizza Gio (133), Nebulosa Galattica**, plus low‑price special offers from rivals (e.g., **Nebulosa di Drago (20 cr)** from R23). | Mid‑tier prestige dishes such as **Sinfonia Cosmica del Multiverso Nascente (371 cr)**, **Portale Cosmico del Kraken (661 cr)**, **Sinfonia Cosmica all’Alba di Fenice (383 cr)** – we have none in the 70‑150 cr range. |
+| **💰 Astrobarone** (high‑budget, fast) | **≈ 120‑170 cr** (premium, quick) | **Sinfonia Cosmica di Luna (383)**, **Nebulosa di Sapori dell’Infinito (95)**, **Sinfonia del Multiverso Nascente (371)** (a bit above) | Rivals’ premium rushed dishes: **Portale Cosmico: Sinfonia di Gnocchi (999 cr)**, **Sinfonia Cosmica di Proteine Interstellari (120 cr)** (R22), **Pizza Fra (133 cr)** – strong demand for “high‑impact” items under 200 cr. | Ultra‑high prestige dishes > 300 cr (our menu only has a few: **Portale del Kraken (661 cr)**, **Sinfonia del Multiverso Nascente (371 cr)**). |
+| **🔭 Saggio del Cosmo** (quality‑focused, time‑rich) | **≈ 200‑300 cr** (premium, leisurely) | **Sinfonia del Multiverso Nascente (371)**, **Portale Cosmico del Kraken (661)**, **Sinfonia Cosmica all’Alba di Fenice (383)** | High‑prestige, long‑cook dishes: **Sinfonia Cosmica: La Vendetta Fantasma (280‑300 cr)**, **Sinfonia Cosmica di Terracotta (210 cr)**, **Galassia di Sapori Interstellari (190 cr)**. | Very cheap “volume” dishes – we already dominate that side. |
+| **👨‍👩‍👧‍👦 Famiglia Orbitale** (value‑seeker, time‑rich) | **≈ 120‑150 cr** (balanced) | **Nebulosa di Sapori dell’Infinito (95)**, **Sinfonia Cosmica di Proteine Interstellari (120)**, **Portale Cosmico del Kraken (661)** (too pricey) | Favored mid‑range dishes: **Pizza Fra (133)**, **Pizza Gio (133)**, **Sinfonia Cosmica di Luna (383 cr)** (but often ordered as “splurge”). | Ultra‑premium items > 400 cr (e.g., **Sinfonia Cosmica di Luna (383)** is just beyond their typical spend). |
+
+**Take‑away:**  
+*Our current menu is heavy on ultra‑high‑prestige (300‑660 cr) and low‑budget (≤ 100 cr) dishes, leaving a **price‑gap** around **120‑250 cr** that the main‑stream customers (Astrobarone & Famiglia) are actively buying from rivals.  
+
+---  
+
+## 2️⃣ 📈 CURRENT MARKET TREND
+
+**Trend:** **Both** – the market shows a **dual‑segment**: a strong low‑volume **budget/volume** tier (turn 75/76 had ~ 200 +  bids on cheap staples) **and** a rising **mid‑high‑prestige** tier (turn 76 introduced many 120‑180 cr bids).  
+
+*Reason:*  Turn 75‑76 bid histories reveal many bidders (≈ 15‑18) on **mid‑range ingredients** (e.g., **Gnocchi del Crepuscolo, Polvere di Crononite, Lagri di Andromeda**). This signals chefs are hunting profitable “sweet‑spot” dishes that balance price and cooking time.  
+
+---  
+
+## 3️⃣ 🥗 TOP 20 INGREDIENTS (by bid competition)
+
+| # | Ingredient | Bidders | Avg bid (cr) | Qty wanted | Scarcity* |
+|---|------------|--------|--------------|-----------|----------|
+| 1 | **Carne di Kraken** | 18 | 0 | 293 | **Very scarce** – most bidders chase it |
+| 2 | **Gnocchi del Crepuscolo** | 18 | 0 | 191 | Very scarce |
+| 3 | **Carne di Balena spaziale** | 17 | 0 | 272 | Very scarce |
+| 4 | **Carne di Xenodonte** | 17 | 0 | 194 | Very scarce |
+| 5 | **Lacrime di Unicorno** | 16 | 0 | 158 | Very scarce |
+| 6 | **Pane degli Abissi** | 16 | 0 | 192 | Very scarce |
+| 7 | **Polvere di Crononite** | 16 | 0 | 160 | Very scarce |
+| 8 | **Carne di Mucca** | 16 | 0 | 225 | Very scarce |
+| 9 | **Colonia di Mycoflora** | 16 | 0 | 216 | Very scarce |
+|10 | **Teste di Idra** | 16 | 0 | 259 | Very scarce |
+|11 | **Fibra di Sintetex** | 16 | 0 | 227 | Very scarce |
+|12 | **Amido di Stellarion** | 16 | 0 | 202 | Very scarce |
+|13 | **Foglie di Nebulosa** | 16 | 0 | 148 | Very scarce |
+|14 | **Carne di Drago** | 16 | 0 | 209 | Very scarce |
+|15 | **Fusilli del Vento** | 15 | 0 | 174 | Very scarce |
+|16 | **Granuli di Nebbia Arcobaleno** | 15 | 0 | 211 | Very scarce |
+|17 | **Essenza di Vuoto** | 15 | 0 | 135 | Very scarce |
+|18 | **Muffa Lunare** | 15 | 0 | 126 | Very scarce |
+|19 | **Essenza di Tachioni** | 15 | 0 | 152 | Very scarce |
+|20 | **Shard di Prisma Stellare** | 15 | 0 | 127 | Very scarce |
+
+\*Scarcity = “high” because every turn the average

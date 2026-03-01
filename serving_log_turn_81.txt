@@ -1,0 +1,9 @@
+--- SERVING LOG (TURN 81) ---
+
+Cliente: Mira Sol             | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Pavo Rell            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Yara Nemet           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Rian Kest            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+
+--- REPORT VENDITE DEL TURNO ---
+Nessun ordine consegnato in questo turno.

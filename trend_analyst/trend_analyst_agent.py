@@ -264,30 +264,74 @@ def get_bid_history_for_turn(turn_id: int) -> str:
             "The turn may not have occurred yet, or the closed_bid phase hasn't run."
         )
 
+    def _extract_ingredient_name(row: dict) -> str:
+        ing_raw = row.get("ingredient", row.get("ingredientName", row.get("ingredient_name", "Unknown")))
+        if isinstance(ing_raw, dict):
+            return str(ing_raw.get("name", "Unknown"))
+        return str(ing_raw or "Unknown")
+
+    def _extract_bid_price(row: dict) -> int:
+        raw = (
+            row.get("bid")
+            or row.get("bidAmount")
+            or row.get("priceForEach")
+            or row.get("unitPrice")
+            or row.get("price")
+            or 0
+        )
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return 0
+
+    def _extract_restaurant_label(row: dict) -> str:
+        restaurant = row.get("restaurant")
+        if isinstance(restaurant, dict):
+            name = restaurant.get("name")
+            rid = restaurant.get("restaurantId", restaurant.get("id"))
+            if name:
+                return f"{name} (R{rid})" if rid is not None else str(name)
+            if rid is not None:
+                return f"R{rid}"
+        rid = (
+            row.get("restaurantId")
+            or row.get("restaurant_id")
+            or row.get("team_id")
+            or row.get("teamId")
+        )
+        return f"R{rid}" if rid is not None else "?"
+
+    def _extract_won_flag(row: dict):
+        if isinstance(row.get("won"), bool):
+            return row.get("won")
+        if isinstance(row.get("fulfilled"), bool):
+            return row.get("fulfilled")
+        if isinstance(row.get("executed"), bool):
+            return row.get("executed")
+        status = str(row.get("status", "")).strip().upper()
+        if status == "COMPLETED":
+            return True
+        if status in {"FAILED", "CANCELLED", "REJECTED"}:
+            return False
+        return None
+
     by_ingredient: Dict[str, list] = {}
     for b in bids:
-        ing_raw = b.get("ingredient", b.get("ingredientName", b.get("ingredient_name", "Unknown")))
-        if isinstance(ing_raw, dict):
-            ing = ing_raw.get("name", str(ing_raw))
-        else:
-            ing = str(ing_raw)
-        by_ingredient.setdefault(ing, []).append(b)
+        by_ingredient.setdefault(_extract_ingredient_name(b), []).append(b)
 
     lines = [f"Bid History Turn {turn_id} — {len(bids)} bids on {len(by_ingredient)} ingredients:\n"]
     for ing, ibids in sorted(by_ingredient.items(), key=lambda x: len(x[1]), reverse=True):
-        # Correctly extract bid price/amount
-        prices = [b.get("bid", b.get("bidAmount", b.get("price", 0))) for b in ibids]
-        total_qty = sum(b.get("quantity", 0) for b in ibids)
+        prices = [_extract_bid_price(b) for b in ibids]
+        total_qty = sum(int(b.get("quantity", 0) or 0) for b in ibids)
         lines.append(
             f"  {ing}: {len(ibids)} bidders | qty_wanted={total_qty} | "
             f"bid min={min(prices)} avg={round(sum(prices)/len(prices),1)} max={max(prices)}"
         )
-        for b in sorted(ibids, key=lambda x: x.get("bid", x.get("bidAmount", 0)), reverse=True)[:4]:
-            # Correctly extract restaurant name/id
-            r_id = b.get("restaurant_name", b.get("team_name", b.get("restaurantId", b.get("restaurant_id", b.get("team_id", "?")))))
-            amt = b.get("bid", b.get("bidAmount", b.get("price", "?")))
+        for b in sorted(ibids, key=lambda x: _extract_bid_price(x), reverse=True)[:4]:
+            r_id = _extract_restaurant_label(b)
+            amt = _extract_bid_price(b)
             qty = b.get("quantity", "?")
-            won = b.get("won", b.get("fulfilled", b.get("executed", None)))
+            won = _extract_won_flag(b)
             won_tag = " [WON]" if won is True else (" [LOST]" if won is False else "")
             lines.append(f"      {r_id}: bid={amt} qty={qty}{won_tag}")
 
@@ -585,12 +629,13 @@ def extract_json_plan(report_md: str) -> Optional[Dict]:
     # Match ```json { ... } ```
     match = re.search(r"```json\s*(\{.*?\})\s*```", report_md, re.DOTALL)
     if not match:
-        logger.warning("No JSON execution plan found in the report.")
+        # Fallback: try to find raw JSON object
+        match = re.search(r"(\{[^{}]*\"target_recipes\"[^{}]*\})", report_md, re.DOTALL)
+    if not match:
         return None
-        
+
     try:
         plan = json.loads(match.group(1))
         return plan
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse JSON plan: {e}")
+    except json.JSONDecodeError:
         return None

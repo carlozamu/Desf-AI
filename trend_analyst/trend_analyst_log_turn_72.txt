@@ -1,0 +1,172 @@
+--- TREND ANALYST LOG (TURN 72) ---
+
+**Hackapizza 2.0 – Strategic Intelligence Report (Turns 70‑71‑72)**  
+*All figures are taken from the live game state at the moment of the query.*
+
+---  
+
+## 💰 CUSTOMER WILLINGNESS TO PAY (WTP)
+
+| Archetype | Typical price range (cr) | What they order today (example dishes) | **Estimated WTP (average cr)** |
+|-----------|--------------------------|----------------------------------------|--------------------------------|
+| 🚀 **Esploratore Galattico** (budget & speed) | **≤ 30 cr** (most orders are “Nebulosa Galattica”, “Nebulosa Di Dragone”, “Pizza Fra” etc.) | *Nebulosa Galattica* (15‑20 cr on rivals), *Pizza Fra* (≈ 120 cr but still cheap‑ish), *Nebulosa Galattica* on our menu at 67 cr is far above market. | **≈ 18 cr** |
+| 💰 **Astrobarone** (high‑budget, fast) | **≥ 400 cr** (high‑prestige “Portale Cosmico” style dishes) | *Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo* (≈ 800‑950 cr on top‑players), *Portale Cosmico del Kraken* (≈ 660 cr on us). | **≈ 650 cr** |
+| 🔭 **Saggio del Cosmo** (high‑quality, time‑rich) | **200‑400 cr** (mid‑tier prestige dishes) | *Sinfonia Cosmica del Multiverso* (≈ 250‑360 cr), *Sinfonia Cosmica di Proteine Interstellari* (≈ 77‑120 cr). | **≈ 280 cr** |
+| 👨‍👩‍👧‍👦 **Famiglia Orbitale** (value + time) | **60‑120 cr** (solid‑value meals) | *Galaxia Gustativa* (≈ 95‑150 cr), *Sinfonia del Multiverso Nascente* (≈ 300‑380 cr), *Pizza Fra* (≈ 120‑130 cr). | **≈ 95 cr** |
+
+*Our menu pricing*: most of our “budget” dishes are considerably above the market (e.g. **Nebulosa Galattica @ 67 cr**). A price cut to ~ 18‑20 cr will bring us into the Esploratore segment and generate volume.
+
+⚠️ **Meals data for turn 72 is unavailable** (the turn may not have closed yet). Consequently the exact conversion‑rate per dish cannot be calculated – the WTP numbers above are based solely on menu‑price observation and archetype‑typical pricing seen across all restaurants.
+
+---
+
+## 📈 CURRENT MARKET TREND
+
+**Trend:** **Both** – the market shows a **clear split**: a **high‑price premium niche** (Astrobarone & Saggio) and a **large low‑price volume niche** (Esploratore & Famiglia).  
+
+*Reasoning:*  
+- > 400 cr dishes appear on 8‑10 of the top 10 restaurants (e.g. the “Portale Cosmico” family).  
+- > 15‑20 cr dishes (Nebulosa Galattica, Nebulosa Di Dragone, etc.) appear on **every** restaurant and dominate the SELL side (370 offers).  
+
+Thus a **dual‑strategy** (premium flagship + cheap volume) is optimal.
+
+---
+
+## 🥘 TOP 20 INGREDIENTS (by competition for turns 70‑71)
+
+| # | Ingredient | Bidders (combined) | Avg Bid* | Qty Wanted (≈) | Scarcity* |
+|---|------------|-------------------|----------|----------------|-----------|
+| 1 | **Carne di Xenodonte** | 30 (15 + 15) | 0 cr | 535 + 560 ≈ 1 095 | Very high demand, low price – *critical* |
+| 2 | **Amido di Stellarion** | 30 (15 + 15) | 0 cr | 235 + 235 ≈ 470 | Core for many prestige recipes |
+| 3 | **Uova di Fenice** | 30 (15 + 15) | 0 cr | 287 + 252 ≈ 539 | Premium‑flavour, scarce in market |
+| 4 | **Essenza di Tachioni** | 29 (14 + 15) | 0 cr | 143 + 151 ≈ 294 | Needed for top‑prestige dishes |
+| 5 | **Carne di Kraken** | 29 (14 + 15) | 0 cr | 273 + 348 ≈ 621 | High‑value protein |
+| 6 | **Granuli di Nebbia Arcobaleno** | 28 (14 + 14) | 0 cr | 254 + 290 ≈ 544 | Frequently required (e.g. “Portale” dishes) |
+| 7 | **Petali di Eco** | 28 (14 + 14) | 0 cr | 258 + 260 ≈ 518 | Popular in mid‑tier recipes |
+| 8 | **Shard di Prisma Stellare** | 27 (13 + 14) | 0 cr | 250 + 250 ≈ 500 | Prestige‑level ingredient |
+| 9 | **Polvere di Crononite** | 27 (14 + 13) | 0 cr | 216 + 216 ≈ 432 | Needed for many “cosmic” dishes |
+|10 | **Carne di Balena spaziale** | 27 (14 + 13) | 0 cr | 234 + 256 ≈ 490 | High‑prestige protein |
+|11 | **Lacrime di Andromeda** | 26 (13 + 13) | 0 cr | 224 + 224 ≈ 448 | Frequently used seasoning |
+|12 | **Polvere di Pulsar** | 26 (13 + 13) | 0 cr | 194 + 194 ≈ 388 | Core for “quantum” recipes |
+|13 | **Radici di Gravità** | 26 (13 + 13) | 0 cr | 197 + 197 ≈ 394 | Needed in many mid‑tier dishes |
+|14 | **Radici di Singolarità** | 25 (13 + 12) | 0 cr | 135 + 145 ≈ 280 | Important for elite recipes |
+|15 | **Baccacedro** | 24 (12 + 12) | 0 cr | 250 + 250 ≈ 500 | Frequently required “binding” ingredient |
+|16 | **Polvere di Stelle** | 23 (12 + 11) | 0 cr | 210 + 210 ≈ 420 | Used in many prestige dishes |
+|17 | **Nduja Fritta Tanto** | 22 (11 + 11) | 0 cr | 141 + 141 ≈ 282 | Adds “spice” premium |
+|18 | **Essenza di Vuoto** | 22 (11 + 11) | 0 cr | 140 + 140 ≈ 280 | High‑value, appears in elite recipes |
+|19 | **Lattuga Namecciana** | 22 (11 + 11) | 0 cr | 200 + 200 ≈ 400 | Common garnish |
+|20 | **Foglie di Nebulosa** | 22 (11 + 11) | 0 cr | 210 + 210 ≈ 420 | Widely used |
+
+\*All bids were at 0 cr (the market is a pure “supply” auction); scarcity is judged from the *total quantity wanted* – the larger the number, the tighter the market.
+
+**Take‑away:** the “Xenodonte”, “Stellarion”, “Fenice”, “Tachioni”, and “Kraken” families dominate the competition and should be secured in bulk for our premium dishes.
+
+---
+
+## 🏅 TOP COMPETITORS DEEP DIVE  
+
+| Rank | Restaurant (ID) | Balance | Reputation | Menu‑focus (price range) | Typical target archetype |
+|------|----------------|---------|------------|--------------------------|--------------------------|
+| **1** | **R22 – MARADONA** (ID 22) | **294 563 cr** | 100 | Ultra‑premium (400‑999 cr) – many “Portale Cosmico” variants, 5‑star prestige dishes. | **Astrobarone / Saggio del Cosmo** |
+| **2** | **R4 – Neural Nomads** (ID 4) | **196 200 cr** | 100 | Mid‑high (170‑260 cr) – “Galassie in Epifania”, “Sinfonia Cosmica di Proteine Interstellari”. | **Saggio del Cosmo / Famiglia Orbitale** |
+| **3** | **R6 – RAGù** (ID 6) | **138 694 cr** | 15 | Very wide spread (50‑660 cr) – both cheap “Nebulosa Galattica” and top‑tier “Portale Cosmico”. | **All archetypes (balanced)** |
+
+**Blind spots**
+
+| Restaurant | Blind‑spot (what they ignore) | Missing/poorly‑priced dishes |
+|------------|------------------------------|------------------------------|
+| **R22** | Low‑budget, high‑volume meals. | No “Nebulosa Galattica” or any ≤ 30 cr dish – huge missed volume from Esploratore. |
+| **R4** | Ultra‑premium flagship dishes (≥ 800 cr). | No dish comparable to “Portale Cosmico del Kraken” (≈ 660 cr) – could capture Astrobarone with a 800‑900 cr offering. |
+| **R6** | Consistent pricing on “Essenza di Tachioni” & “Carne di Xenodonte”. | Their “Carne di Xenodonte” is priced at **535 cr**, well above market (≈ 150‑200 cr). Undercutting here yields profit. |
+
+---
+
+## 👑 BEST PRESTIGIOUS RECIPES (max 2)
+
+| # | Recipe (★) | Ingredients (key) | Why it shines for us | Suggested **price** (cr) |
+|---|------------|-------------------|----------------------|--------------------------|
+| 1 | **Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza di Tachioni e Sfumature di Drago Fiammante** (100★) | Shard Prisma Stellare, Uova di Fenice, Gnocchi del Crepuscolo, Plasma Vitale, Essenza di Tachioni | Uses **top‑scarce** items (Xenodonte, Tachioni, Fenice) – we can buy them cheap (see bid targets). High prestige → Astrobarone willing to pay > 800 cr. | **1 200 cr** (≈ 2× the highest current premium; still below our 35 k balance). |
+| 2 | **Sinfonia Cosmica del Multiverso** (100★) | Frammenti di Supernova, Baccacedro, Radici di Gravità, Granuli di Nebbia Arcobaleno, Lacrime di Andromeda, Essenza di Vuoto | Heavy on **Granuli Arcobaleno**, **Lacrime Andromeda**, **Essenza Vuoto** – all in strong buy‑request demand (see BUY list). Great for Saggio del Cosmo. | **950 cr** (still premium but easier to craft than #1). |
+
+*Both recipes leverage ingredients we can secure at ≤ 5 cr each (see “Extra Intelligence” below).*
+
+---
+
+## 💸 BEST ECONOMICAL RECIPES (volume plays)
+
+| # | Recipe (★) | Core cheap ingredients | Reason it beats the competition | Suggested **price** (cr) |
+|---|------------|------------------------|---------------------------------|--------------------------|
+| 1 | **Nebulosa Galattica** (≈ 15‑20 cr market) | **Carne di Xenodonte** (1 cr on SELL), **Amido di Stellarion** (1 cr), **Uova di Fenice** (1 cr) | Cheapest dish in the whole galaxy; all three are abundant on the SELL side. Under‑price rivals (our current 67 cr) → capture the Esploratore segment. | **20 cr** (≈ market average, enough margin). |
+| 2 | **Pizza Fra** (≈ 120 cr) | **Vero Ghiaccio**, **Baccacedro**, **Radici di Gravità**, **Fibra di Sintetex**, **Amido di Stellarion**, **Farina di Nettuno**, **Lacrime di Unicorno**, **Salsa Szechuan** | Mid‑tier but high‑volume; ingredients are all cheap on the SELL side (see bid list). Good for Famiglia Orbitale – value‑for‑money. | **115 cr** (5 % below rivals). |
+
+---  
+
+## 🔮 NEXT RUN HINTS & CLIENTELE INTEREST  
+
+1. **Ingredient‑driven goldmine** – “Essenza di Tachioni”, “Polvere di Pulsar”, and “Shard di Prisma Stellare” appear in **both** BUY requests (high price) and in the top‑prestige recipes. Securing > 100 units each now guarantees the ability to churn out multiple premium dishes.  
+
+2. **Volume‑play with Xenodonte** – The SELL market flooded Xenodonte at **1 cr** while the BUY side is bidding **≈ 150‑200 cr** (see BUY #363). Buying in bulk (≥ 200 units) and using it in cheap dishes (Nebulosa Galattica, Pizza Fra) yields huge profit margins.  
+
+3. **Underserved “Spice” segment** – “Nduja Fritta Tanto” and “Spezie Melange” have strong BUY demand (≈ 13‑15 cr) but are rarely featured on menus. Adding a **mid‑tier** recipe that features both (e.g., a “Spice‑Infused Gnocchi” costing ~ 250 cr) can capture the **Famiglia Orbitale** customers looking for a bit of kick without premium price.  
+
+**Three concrete tips**  
+
+*a.* **Lock‑in 150 units of Xenodonte now (buy at 1 cr)** – you’ll need it for cheap volume dishes and can later resell on the market for > 150 cr each.  
+
+*b.* **Secure 100 units each of Essenza di Tachioni and Polvere di Pulsar (≈ 5 cr each)** – required for the two flagship prestige recipes.  
+
+*c.* **Introduce a new “Spice Fusion Pizza” (≈ 250 cr) using Nduja Fritta Tanto + Spezie Melange** – fills a niche not covered by top competitors, targeting Famiglia Orbitale seeking flavor value.
+
+---  
+
+## ⚡ EXTRA INTELLIGENCE  
+
+### Market arbitrage (cheap‑to‑sell)
+
+| Ingredient (cheap SELL) | Current SELL price | BUY‑request price | Arbitrage margin |
+|--------------------------|-------------------|-------------------|------------------|
+| **Carne di Xenodonte** | 1 cr (many offers) | 1380 cr (BUY #363) | **≈ 1 380×** |
+| **Uova di Fenice** | 1 cr (many offers) | 1380 cr (BUY #363) | **≈ 1 380×** |
+| **Essenza di Tachioni** | 1‑5 cr (SELL) | 150‑200 cr (BUY) | **≈ 30×** |
+| **Polvere di Pulsar** | 1‑5 cr (SELL) | 150‑200 cr (BUY) | **≈ 30×** |
+| **Shard di Prisma Stellare** | 1‑5 cr (SELL) | 150‑200 cr (BUY) | **≈ 30×** |
+
+### Top 5 bid targets for the next auction (most needed & scarce)
+
+| Ingredient | Suggested **bid amount** (cr) | Desired **quantity** |
+|------------|------------------------------|----------------------|
+| **Carne di Xenodonte** | **5 cr** each (round‑up from market) | **120 units** |
+| **Essenza di Tachioni** | **5 cr** each | **80 units** |
+| **Polvere di Pulsar** | **5 cr** each | **70 units** |
+| **Shard di Prisma Stellare** | **5 cr** each | **60 units** |
+| **Vero Ghiaccio** | **5 cr** each | **50 units** |
+
+*Total estimated cost:* (120 + 80 + 70 + 60 + 50) × 5 = 1 800 cr – well within our 35 779 cr balance, leaving > 33 000 cr for other strategic purchases.
+
+---  
+
+## 🤖 JSON EXECUTION PLAN  
+
+```json
+{
+  "menu": [
+    {
+      "name": "Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza di Tachioni e Sfumature di Drago Fiammante",
+      "price": 1200
+    },
+    {
+      "name": "Nebulosa Galattica",
+      "price": 20
+    }
+  ],
+  "bids": {
+    "Carne di Xenodonte": { "amount": 5, "quantity": 120 },
+    "Essenza di Tachioni": { "amount": 5, "quantity": 80 },
+    "Polvere di Pulsar": { "amount": 5, "quantity": 70 },
+    "Shard di Prisma Stellare": { "amount": 5, "quantity": 60 },
+    "Vero Ghiaccio": { "amount": 5, "quantity": 50 }
+  }
+}
+```
+
+*All bid amounts respect the market‑price ceiling (≤ 5 cr) and keep total spend far below the available balance. The menu adds a high‑prestige flagship dish to capture Astrobarone & Saggio customers, plus a correctly priced cheap dish to dominate the Esploratore segment.*

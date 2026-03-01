@@ -1,0 +1,50 @@
+--- TREND ANALYST LOG (TURN 76) ---
+
+**🦾 HACKAPIZZA 2.0 – TURN 76 INTELLIGENCE PACK**  
+*(All figures are taken from the live game state at the time of the query.  No “turn‑76 meals” were available, so the analysis is based on menus, market offers, bid‑history (turn 74‑75) and the current ≈ 39 k‑credit balance of **Desf‑AI**.)*  
+
+---
+
+## 💰 CUSTOMER WILLINGNESS TO PAY (WTP)
+
+| Archetype | Typical budget (average price of dishes they order) | Typical order pattern | **Estimated WTP** |
+|-----------|------------------------------------------------------|-----------------------|-------------------|
+| 🚀 **Esploratore Galattico** – “cheap & fast” | 10 – 20 cr (most low‑priced dishes in the market are 8‑30 cr) | 1‑2 cheap starters, no premium items | **≈ 15 cr** |
+| 💰 **Astrobarone** – “high‑budget, fast” | 600 – 900 cr (several top competitors sell 600‑800 cr premium dishes, e.g. *Portale Cosmico* 999 cr, *Sinfonia Cosmica del Multiverso* 800 cr) | 1‑2 high‑prestige dishes, often the most “shiny” recipe | **≈ 800 cr** |
+| 🔭 **Saggio del Cosmo** – “high‑quality, time‑rich” | 400 – 650 cr (mid‑high tier dishes dominate the menus of R22, R4, R6) | 1‑2 mid‑high prestige dishes, occasionally a cheap side | **≈ 550 cr** |
+| 👨‍👩‍👧‍👦 **Famiglia Orbitale** – “value‑for‑money, time‑rich” | 80 – 150 cr (most medium‑priced dishes sit around 90‑130 cr) | 2‑3 balanced dishes, often a premium + a cheap side | **≈ 120 cr** |
+
+*How we derived it* – We looked at the price distribution across **all** open menus (≈ 200 recipes).  The bulk of prices cluster around three bands: 10‑30 cr (budget), 80‑150 cr (mid‑range) and 400‑900 cr (premium).  The four archetypes map cleanly onto those bands.
+
+---
+
+## 📈 CURRENT MARKET TREND  
+
+The **menu spread** shows a *large* number of high‑prestige, high‑price dishes (many 600‑1000 cr) **and** a very dense field of cheap “starter” dishes (10‑30 cr).  Competitors are actively bidding for both scarce high‑value ingredients (see “Top 20 ingredients” below) **and** bulk cheap ones.  
+
+**Trend:** **Both** – the market is split between a premium race for prestige dishes and a volume race for cheap, fast‑turnover meals.  The safest play is to keep a foothold in each segment.
+
+---
+
+## 🥗 TOP 20 INGREDIENTS (combined turn 74 + 75)
+
+| # | Ingredient | Total bidders* | Total qty wanted | Scarcity (≈ high / mid / low) |
+|---|------------|----------------|------------------|----------------------------|
+| 1 | **Carne di Kraken** | 36 | ≈ 537 | **high** (very contested) |
+| 2 | **Carne di Balena spaziale** | 35 | ≈ 533 | **high** |
+| 3 | **Carne di Xenodonte** | 34 | ≈ 394 | **high** |
+| 4 | **Uova di Fenice** | 34 | ≈ 469 | **high** |
+| 5 | **Gnocchi del Crepuscolo** | 31 | ≈ 340 | **high** |
+| 6 | **Pane degli Abissi** | 30 | ≈ 360 | **high** |
+| 7 | **Lattuga Namecciana** | 30 | ≈ 368 | **high** |
+| 8 | **Foglie di Nebulosa** | 29 | ≈ 293 | **high** |
+| 9 | **Radici di Gravità** | 28 | ≈ 239 | **high** |
+|10 | **Radici di Singolarità** | 27 | ≈ 325 | **high** |
+|11 | **Fibre di Sintetex** | 24 | ≈ 437 | **high** |
+|12 | **Lacrime di Andromeda** | 24 | ≈ 301 | **high** |
+|13 | **Polvere di Crononite** | 24 | ≈ 320 | **high** |
+|14 | **Essenza di Vuoto** | 23 | ≈ 273 | **high** |
+|15 | **Polvere di Stelle** | 22 | ≈ 260 | **high** |
+|16 | **Shard di Prisma Stellare** | 22 | ≈ 312 | **high** |
+|17 | **Sale Temporale** | 21 | ≈ 220 | **mid** |
+|18 | **Lacrime di Unicorno** | 19

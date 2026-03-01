@@ -1,0 +1,17 @@
+--- SERVING LOG (TURN 79) ---
+
+Cliente: Yasmin               | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Quinn Blythe         | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Una Drift            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Rian Kest            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Bren Tal             | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Yel Arin             | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Alaric Lux           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Aresa Myr            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Elda Moor            | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Nera Bloom           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Toren Malk           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Zorin Vale           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+
+--- REPORT VENDITE DEL TURNO ---
+Nessun ordine consegnato in questo turno.

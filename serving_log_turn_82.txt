@@ -1,0 +1,11 @@
+--- SERVING LOG (TURN 82) ---
+
+Cliente: Harlan Stroud        | Piatto: Galassia Suprema                         | Stato: PENDING   
+Cliente: Valen Zale           | Piatto: Galassia Suprema                         | Stato: PENDING   
+Cliente: Demi Fox             | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+Cliente: Wren Arden           | Piatto: Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza di Tachioni e Sfumature di Fenice | Stato: PENDING   
+Cliente: Voren Pike           | Piatto: Galassia Suprema                         | Stato: PENDING   
+Cliente: Halea Vorn           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
+
+--- REPORT VENDITE DEL TURNO ---
+Nessun ordine consegnato in questo turno.

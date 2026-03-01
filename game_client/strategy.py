@@ -149,10 +149,20 @@ def build_low_cost_bids(
 
     bids: list[dict[str, Any]] = []
     bid_map: dict[str, int] = {}
+    bid_range = max(0, int(max_ingredient_bid) - int(min_ingredient_bid))
+    max_pressure = max(1, max(ingredient_presence.values(), default=1))
+    max_qty = max(1, max(aggregate_qty.values(), default=1))
+    # Keep fallback bids competitive even when trend-plan bids are unavailable.
+    # With wide bid ranges (e.g. max=200), avoid staying near the minimum.
+    base_ratio = 0.60 if bid_range >= 40 else 0.35
 
     for ingredient, qty in sorted(aggregate_qty.items()):
         pressure = ingredient_presence.get(ingredient, 1)
-        bid_value = min_ingredient_bid + min(10, max(0, (pressure - 1) * 5))
+        pressure_score = (pressure - 1) / max(1, max_pressure - 1)
+        qty_score = (int(qty) - 1) / max(1, max_qty - 1)
+        urgency = (pressure_score * 0.55) + (qty_score * 0.45)
+        target_ratio = max(base_ratio, min(1.0, urgency))
+        bid_value = int(min_ingredient_bid) + int(round(bid_range * target_ratio))
         bid_value = max(min_ingredient_bid, min(max_ingredient_bid, bid_value))
 
         bids.append(
@@ -238,6 +248,45 @@ def _dish_match_score(order_query: str, dish_name: str) -> float:
     return max(overlap, (overlap * 0.6) + (ratio * 0.4))
 
 
+_INGREDIENT_ORDER_RE = re.compile(
+    r"i want something with\s+(.+)",
+    re.IGNORECASE,
+)
+
+
+def _parse_ingredient_list(text: str) -> list[str]:
+    """Extract ingredient names from 'I want something with X, Y, and Z'."""
+    m = _INGREDIENT_ORDER_RE.search(text)
+    if not m:
+        return []
+    raw = m.group(1).strip().rstrip(".")
+    # Split on ", and " / ", " / " and "
+    parts = re.split(r",\s*and\s+|,\s*|\s+and\s+", raw, flags=re.IGNORECASE)
+    return [p.strip().lower() for p in parts if p.strip()]
+
+
+def _ingredient_match_score(
+    requested_ingredients: list[str],
+    dish_name: str,
+    recipes: list[dict[str, Any]],
+) -> float:
+    """Score a dish by how many of the requested ingredients it contains."""
+    dish_lower = dish_name.lower()
+    for recipe in recipes:
+        if str(recipe.get("name", "")).strip().lower() != dish_lower:
+            continue
+        recipe_ings = {ing.lower() for ing in recipe_ingredients(recipe)}
+        if not recipe_ings:
+            return 0.0
+        requested_set = set(requested_ingredients)
+        overlap = len(requested_set & recipe_ings)
+        if overlap == 0:
+            return 0.0
+        # Score: fraction of recipe ingredients that are requested
+        return overlap / len(recipe_ings)
+    return 0.0
+
+
 def pick_dish_for_order(
     order_text: str,
     active_menu: list[dict[str, Any]],
@@ -255,14 +304,27 @@ def pick_dish_for_order(
     all_recipes = recipes or []
     ranked: list[tuple[float, str]] = []
 
-    for item in active_menu:
-        dish_name = str(item.get("name", "")).strip()
-        if not dish_name:
-            continue
-        score = _dish_match_score(dish_query, dish_name)
-        if score <= 0:
-            continue
-        ranked.append((score, dish_name))
+    # Try ingredient-based matching first (for "I want something with X, Y, Z" orders)
+    requested_ingredients = _parse_ingredient_list(order_text)
+    if requested_ingredients and all_recipes:
+        for item in active_menu:
+            dish_name = str(item.get("name", "")).strip()
+            if not dish_name:
+                continue
+            score = _ingredient_match_score(requested_ingredients, dish_name, all_recipes)
+            if score > 0:
+                ranked.append((score, dish_name))
+
+    # Fallback to dish-name matching
+    if not ranked:
+        for item in active_menu:
+            dish_name = str(item.get("name", "")).strip()
+            if not dish_name:
+                continue
+            score = _dish_match_score(dish_query, dish_name)
+            if score <= 0:
+                continue
+            ranked.append((score, dish_name))
 
     if not ranked:
         return None, intolerances
@@ -270,7 +332,7 @@ def pick_dish_for_order(
     ranked.sort(key=lambda row: row[0], reverse=True)
     best_score = ranked[0][0]
     # Require a minimum confidence unless there is a very clear best match.
-    if best_score < 0.45:
+    if best_score < 0.20:
         return None, intolerances
 
     for _, dish_name in ranked:
