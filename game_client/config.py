@@ -57,6 +57,7 @@ def load_config() -> ClientConfig:
 
     min_ingredient_bid = max(1, _parse_int_env("MIN_INGREDIENT_BID", 2))
     max_ingredient_bid = max(min_ingredient_bid + 1, _parse_int_env("MAX_INGREDIENT_BID", 12))
+    portions_per_recipe = max(1, min(6, _parse_int_env("PORTIONS_PER_RECIPE", 2)))
 
     return ClientConfig(
         team_id=team_id,
@@ -69,6 +70,7 @@ def load_config() -> ClientConfig:
         sse_conflict_retry_delay=_parse_int_env("SSE_CONFLICT_RETRY_DELAY", 6),
         min_ingredient_bid=min_ingredient_bid,
         max_ingredient_bid=max_ingredient_bid,
+        portions_per_recipe=portions_per_recipe,
         max_target_recipes=max(6, min(24, _parse_int_env("MAX_TARGET_RECIPES", 12))),
         turn_spend_cap=max(100, _parse_int_env("TURN_SPEND_CAP", 2500)),
         max_menu_items=max(10, min(300, _parse_int_env("MAX_MENU_ITEMS", 220))),

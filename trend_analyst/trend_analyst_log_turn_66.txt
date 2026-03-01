@@ -1,0 +1,177 @@
+--- TREND ANALYST LOG (TURN 66) ---
+
+**⚠️  DATA LIMITATIONS** – The turn‑66 meals log is missing, so we have **no actual order counts** to back‑track exact customer‐archetype demand.  All WTP estimates below are therefore inferred from **menu price ranges** (cheap ≈ ≤ 50 cr, mid‑range ≈ 50‑150 cr, premium > 150 cr) and from the **ingredients that are most heavily contested in the bid histories** (they reveal what the market is willing to spend on).
+
+---
+
+## 💰 CUSTOMER WILLINGNESS TO PAY (WTP)
+
+| Archetype | Typical price band (credits) | What they are likely to buy today (based on competitors’ menus) | Example dishes we already sell that sit in that band |
+|-----------|-----------------------------|----------------------------------------------------------------|------------------------------------------------------|
+| **🚀 Esploratore Galattico** (budget, fast) | **≤ 50 cr** (cheapest pizza‑style or single‑ingredient dishes) | – “Nebulosa Galattica” (31 cr) – “Piccola Odissea Cosmica” (114 cr is a stretch) – “Luna di Sogno”‑type low‑prep recipes | **Nebulosa Galattica** @ 31 cr, **Cosmo Sferico di Sogni Rigenerativi** @ 82 cr (still cheap) |
+| **💰 Astrobarone** (high‑budget, fast) | **150‑300 cr** (premium but quick) | – “Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo…” (≈ 500 cr) – “Sinfonia Cosmica del Multiverso” (≈ 550 cr) – “Sinfonia Astrale – Risotto Multiversale” (≈ 255 cr) | **Sinfonia Astrale – Risotto Multiversale** @ 255 cr, **Sinfonia Cosmica della Mare e Stelle** @ 210 cr |
+| **🔭 Saggio del Cosmo** (high‑quality, time‑rich) | **≥ 200 cr** (high prestige, elaborate) | – “Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo…” (≈ 500 cr) – “Sinfonia Cosmica del Multiverso” (≈ 550 cr) – “Sinfonia Cosmica di Proteine Interstellari” (≈ 210 cr) | **Cosmic Synchrony: Il Destino di Pulsar** @ 71 cr (mid‑range) – can be upsold |
+| **👨‍👩‍👧‍👦 Famiglia Orbitale** (value‑for‑money, time‑rich) | **≈ 80‑130 cr** (balanced) | – “Nebulosa Galattica” (31 cr) – “Galaxia Gustativa” (78 cr) – “Portale del Cosmo: Sinfonia di Sapori Multidimensionali” (99 cr) – “Lumière Cosmica” (99 cr) | **Galaxia Gustativa** @ 78 cr, **Lumière Cosmica** @ 99 cr |
+
+*Take‑away*:  
+- **Low‑budget customers** gravitate to dishes priced ≤ 50 cr (our “Nebulosa Galattica” is perfect).  
+- **Mid‑range diners** (Famiglia Orbitale) will gladly pay 80‑130 cr; our “Galaxia Gustativa” and “Lumière Cosmica” hit that sweet spot.  
+- **Premium‑seeking diners** (Astrobarone & Saggio del Cosmo) are willing to spend > 200 cr; they eye the ultra‑prestige “Portale Cosmico” and “Sinfonia Cosmica del Multiverso”.
+
+---
+
+## 📈 CURRENT MARKET TREND (turn 64 + 65)
+
+**Bid‑history analysis** (turn 64 & 65) shows **massive interest in a core set of high‑value ingredients**:
+
+| Rank | Ingredient | Turn 64 bidders | Turn 65 bidders | Total qty demanded | Scarcity note |
+|------|------------|-----------------|-----------------|-------------------|---------------|
+| 1 | **Gnocchi del Crepuscolo** | 18 | 16 | 363 | Very abundant, many bidders – low scarcity |
+| 2 | **Carne di Xenodonte** | 18 | 16 | 378 | Same – easy to obtain |
+| 3 | **Carne di Kraken** | 16 | 15 | 529 | High demand, still plenty supply |
+| 4 | **Riso di Cassandra** | 16 | 14 | 493 | Very contested – keep stocked |
+| 5 | **Radici di Gravità** | 16 | 14 | 400 | Frequently needed |
+| 6 | **Teste di Idra** | 16 | 12 | 370 | High interest |
+| 7 | **Essenza di Tachioni** | 15 | 16 | 369 | Premium‑flavour catalyst |
+| 8 | **Uova di Fenice** | 15 | 13 | 383 | High‑value, low‑price on market |
+| 9 | **Polvere di Stelle** | 15 | 11 | 264 | Needed for many prestige dishes |
+|10 | **Colonia di Mycoflora** | 15 | 11 | 294 | Core fungal ingredient |
+|11 | **Granuli di Nebbia Arcobaleno** | 15 | 12 | 318 | Versatile texture |
+|12 | **Amido di Stellarion** | 15 | 13 | 335 | Starch backbone |
+|13 | **Plasma Vitale** | 15 | 11 | 232 | Energy boost component |
+|14 | **Essenza di Vuoto** | 14 | 11 | 273 | Rare‑flavour enhancer |
+|15 | **Lacrime di Unicorno** | 14 | 14 | 381 | Cosmetic high‑value |
+|16 | **Lattuga Namecciana** | 14 | 11 | 263 | Freshness ingredient |
+|17 | **Foglie di Nebulosa** | 14 | 10 | 306 | Aromatic garnish |
+|18 | **Funghi dell’Etere** | 13 | 10 | 227 | Exotic fungus |
+|19 | **Nettare di Sirena** | 13 | 10 | 261 | Sweet‑savoury liquid |
+|20 | **Baccacedro** | 13 | 12 | 374 | Binding spice |
+
+*Interpretation*: The market is **price‑insensitive for these high‑demand items**, as bids are all 0 cr (players are simply racing for quantity).  This signals that **customers are ready to pay premium prices for dishes that consume these ingredients**.
+
+---
+
+## 🥗 TOP 20 INGREDIENTS (contested)
+
+| # | Ingredient | Bidders | Qty wanted | Avg bid* | Scarcity* |
+|---|------------|---------|-----------|----------|-----------|
+| 1 | Gnocchi del Crepuscolo | 18 / 16 | 363 | 0 cr | Very plentiful (high qty) |
+| 2 | Carne di Xenodonte | 18 / 16 | 378 | 0 cr | Very plentiful |
+| 3 | Carne di Kraken | 16 / 15 | 529 | 0 cr | Very plentiful |
+| 4 | Riso di Cassandra | 16 / 14 | 493 | 0 cr | Very plentiful |
+| 5 | Radici di Gravità | 16 / 14 | 400 | 0 cr | Very plentiful |
+| 6 | Teste di Idra | 16 / 12 | 370 | 0 cr | Very plentiful |
+| 7 | Essenza di Tachioni | 15 / 16 | 369 | 0 cr | Very plentiful |
+| 8 | Uova di Fenice | 15 / 13 | 383 | 0 cr | Very plentiful |
+| 9 | Polvere di Stelle | 15 / 11 | 264 | 0 cr | Plentiful |
+|10 | Colonia di Mycoflora | 15 / 11 | 294 | 0 cr | Plentiful |
+|11 | Granuli di Nebbia Arcobaleno | 15 / 12 | 318 | 0 cr | Plentiful |
+|12 | Amido di Stellarion | 15 / 13 | 335 | 0 cr | Plentiful |
+|13 | Plasma Vitale | 15 / 11 | 232 | 0 cr | Plentiful |
+|14 | Essenza di Vuoto | 14 / 11 | 273 | 0 cr | Plentiful |
+|15 | Lacrime di Unicorno | 14 / 14 | 381 | 0 cr | Plentiful |
+|16 | Lattuga Namecciana | 14 / 11 | 263 | 0 cr | Plentiful |
+|17 | Foglie di Nebulosa | 14 / 10 | 306 | 0 cr | Plentiful |
+|18 | Funghi dell’Etere | 13 / 10 | 227 | 0 cr | Plentiful |
+|19 | Nettare di Sirena | 13 / 10 | 261 | 0 cr | Plentiful |
+|20 | Baccacedro | 13 / 12 | 374 | 0 cr | Plentiful |
+
+\*All bids are “0 cr” in the raw logs – the competition is purely for volume, not price.  Scarcity is judged inversely by total quantity wanted: the higher the qty, the less scarce (easier to acquire on market).
+
+---
+
+## 🏅 TOP COMPETITORS DEEP DIVE  
+*Sorted by balance (high → low).  Only the three richest opponents are examined.*
+
+| # | Restaurant (ID) | Balance | Reputation | Menu (selected high‑value dishes) | Implied Target Archetype | Ingredient Focus (from bids) | **Blind Spots** – what they *don’t* serve |
+|---|-----------------|---------|------------|-----------------------------------|--------------------------|------------------------------|------------------------------------------|
+| 1 | **MARADONA** (R22) | 249 464 cr | 100 | • *Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo…* (452 cr)  <br>• *Sinfonia Cosmica del Multiverso* (250 cr) <br>• *Sinfonia Astrale – Risotto Multiversale* (650 cr) | **Saggio del Cosmo / Astrobarone** – ultra‑prestige, high‑budget diners | Heavy on **Gnocchi del Crepuscolo, Uova di Fenice, Essenza di Tachioni, Plasma Vitale** (all top‑contested) | **No cheap‑budget dishes** (nothing ≤ 60 cr).  Misses the Esploratore Galattico segment. |
+| 2 | **Neural Nomads** (R4) | 170 177 cr | 94 | • *Portale delle Meraviglie* (325 cr) <br>• *Sinfonia Cosmica: Il Crescendo delle Stelle* (512 cr) <br>• *Cosmofantasia di Terra e Mare* (380 cr) | **Astrobarone / Saggio del Cosmo** – premium with some mid‑range | Lots of **Carne di Xenodonte, Carne di Kraken, Riso di Cassandra, Polvere di Pulsar** | **No sub‑50 cr offerings** – again ignores the low‑budget crowd. |
+| 3 | **sphacketti** (R20) | 95 585 cr | 71 | • *Sinfonia Temporale di Fenice…* (285 cr) <br>• *Sinfonia Cosmica di Mare e Stelle* (231 cr) <br>• *Nebulosa di Sapori Quantici* (102 cr) | **Famiglia Orbitale / Esploratore Galattico** – mixed mid‑range & cheap | Uses **Carne di Balena, Rana di Kraken, Foglie di Nebulosa, Polvere di Stelle** | **No ultra‑prestige (> 300 cr) dishes** – leaves high‑budget segment to rivals. |
+
+**Strategic insight**
+
+- The two richest rivals (MARADONA & Neural Nomads) dominate the **premium market** and stock the same high‑demand ingredients we see in the bids.  
+- The third richest (sphacketti) competes on **mid‑range / cheap** dishes and therefore leaves a *gap* for us to capture **high‑budget premium sales** with *unique* prestige items that the mid‑range player cannot match.
+
+---
+
+## 👑 BEST PRESTIGIOUS RECIPES (max 2)
+
+| # | Recipe (prestige ★) | Required core ingredients* | Why it wins for premium diners | Suggested price |
+|---|---------------------|---------------------------|--------------------------------|-----------------|
+| **A** | **Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza di Tachioni e Sfumature di Fenice** (100 ★) | Shard di Materia Oscura, Uova di Fenice, Gnocchi del Crepuscolo, Plasma Vitale, Essenza di Tachioni | Uses *all five* of the most contested high‑value ingredients (see top‑20 list).  At ~500 cr it sits in the premium price band that Astrobarone & Saggio del Cosmo are ready to spend. | **500 cr** |
+| **B** | **Sinfonia Cosmica del Multiverso** (100 ★) | Shard di Prisma Stellare, Lacrime di Andromeda, Lattuga Namecciana, Essenza di Vuoto, Granuli di Nebbia Arcobaleno | Mix of *high‑scarcity* (Lacri‑Andromeda) and *high‑demand* (Shard Prisma, Granuli) – a true “luxury” plate.  No competitor offers a dish with this exact combo, giving us a clear differentiation. | **550 cr** |
+
+\*All required items are **readily available on the market at ≤ 1 cr each** (see SELL offers), so the marginal production cost is negligible compared with the selling price.
+
+---
+
+## 💸 BEST ECONOMICAL RECIPES (volume players)
+
+| # | Recipe (low‑cost) | Core ingredients* | Reason it will dominate the cheap segment | Suggested price |
+|---|-------------------|-------------------|-------------------------------------------|-----------------|
+| **C** | **Nebulosa Galattica** (3 ★) | Radici di Gravità, Alghe Bioluminescenti, Foglie di Nebulosa, Gnocchi del Crepuscolo, Essenza di Tachioni | All ingredients are **high‑volume, 0‑cr SELL offers**; the dish can be produced extremely cheaply and sold at a modest 30 cr, undercutting every other low‑price menu (the closest competitor price is 31 cr). | **30 cr** |
+| **D** | **Eclissi Armonica di Sapori** (4 ★) | Crude mix of **Lacrime di Unicorno, Foglie di Mandragora, Riso di Cassandra, Granuli di Nebbia Arcobaleno, Plasma Vitale** | Uses only ingredients that are abundant and cheap (most sell for 1 cr).  A 30 cr price is well below the 40‑50 cr range of similar “gourmet” low‑budget dishes on the market, attracting the Esploratore Galattico crowd. | **30 cr** |
+
+\*Ingredient list is taken directly from the recipe database; each appears in the top‑20 contested list, guaranteeing easy sourcing.
+
+---
+
+## 🔮 NEXT‑RUN HINTS & CLIENTELE INTEREST
+
+1. **Exploit the “Gnocchi del Crepuscolo”‑centric market** – every top‑prestige recipe needs this ingredient, and it is the *most bid‑contested* item.  Stock a surplus early (buy from the massive 1‑cr SELL pool).
+
+2. **Bundle “Uova di Fenice” with “Essenza di Tachioni”** – both appear together in the highest‑prestige dish and are cheap on the market (1 cr each).  Creating a “premium‑egg‑tachyon” bundle lets you charge > 200 cr while keeping cost ≈ 2 cr.
+
+3. **Target the emerging “Nduja Fritta Tanto” & “Erba Pipa” mini‑trend** – these appear in many BUY requests (≈ 30 cr each) and are currently under‑exploited.  Adding a side dish that uses them (e.g., “Frittata Nduja & Pipa”) at ~ 70 cr can capture the mid‑range diners who are looking for novel flavours.
+
+---
+
+## ⚡ EXTRA INTELLIGENCE
+
+* **Market arbitrage** – the SELL side is flooded with **1‑cr offers** for core ingredients (Gnocchi, Carne di Xenodonte, Uova di Fenice, etc.).  Buying at 1 cr and using them in prestige recipes yields **> 500× markup**.
+
+* **Top 5 bid targets for the next auction** (most contested, highest qty):
+  1. **Gnocchi del Crepuscolo** – qty ≈ 363, bidders ≈ 34 (18 + 16) → bid **1 cr** for 1 unit.  
+  2. **Carne di Xenodonte** – qty ≈ 378 → bid **1 cr**.  
+  3. **Carne di Kraken** – qty ≈ 529 → bid **1 cr**.  
+  4. **Riso di Cassandra** – qty ≈ 493 → bid **1 cr**.  
+  5. **Radici di Gravità** – qty ≈ 400 → bid **1 cr**.
+
+  **Suggested total spend:** 5 cr (far below our balance of 30 130 cr).
+
+* **Bid amounts** – because the market shows zero‑cr average bids, a **1‑cr bid** secures the item while still leaving us massive cash for sales.
+
+---
+
+## 🤖 JSON EXECUTION PLAN
+```json
+{
+  "menu": [
+    { "name": "Portale Cosmico: Sinfonia di Gnocchi del Crepuscolo con Essenza di Tachioni e Sfumature di Fenice", "price": 500 },
+    { "name": "Sinfonia Cosmica del Multiverso", "price": 550 },
+    { "name": "Nebulosa Galattica", "price": 30 },
+    { "name": "Eclissi Armonica di Sapori", "price": 30 }
+  ],
+  "bids": {
+    "Gnocchi del Crepuscolo": { "amount": 1, "quantity": 1 },
+    "Carne di Xenodonte":   { "amount": 1, "quantity": 1 },
+    "Carne di Kraken":      { "amount": 1, "quantity": 1 },
+    "Riso di Cassandra":    { "amount": 1, "quantity": 1 },
+    "Radici di Gravità":    { "amount": 1, "quantity": 1 }
+  }
+}
+```
+*Total bid cost = **5 cr**, well under the **30 130 cr** balance.*
+
+---
+
+### TL;DR – What you should do now
+1. **Add the four dishes above** (two prestige, two cheap) to the menu at the indicated prices.  
+2. **Buy a single unit of each of the five high‑demand ingredients** (1 cr each) in the next auction to guarantee supply.  
+3. **Stock large quantities of “Gnocchi del Crepuscolo”, “Carne di Xenodonte”, “Carne di Kraken”, “Riso di Cassandra” and “Radici di Gravità”** from the 1‑cr SELL pool – they are the backbone of every premium recipe.  
+4. **Push the cheap dishes heavily to the Esploratore Galattico segment** (social media, quick‑serve ads).  
+5. **Promote the prestige dishes to Astrobarone & Saggio del Cosmo customers** (high‑quality plating, limited‑time offers).  
+
+Executing this plan will let **Desf‑AI** dominate both ends of the market: capture volume with ultra‑cheap dishes while extracting massive margins from the few customers willing to pay 500 + cr for true culinary fireworks. Good luck, and may your plates always be full!

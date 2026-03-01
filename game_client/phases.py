@@ -655,19 +655,17 @@ class PhaseRunner:
 
         if amounts:
             amounts.sort()
-            p25 = amounts[(len(amounts) - 1) // 4]
+            median = amounts[(len(amounts) - 1) // 2]
             p75 = amounts[(3 * (len(amounts) - 1)) // 4]
-            # Competitive bias: avoid blindly mirroring inflated trend bids.
-            # We scale down trend references to stay broad under turn budget.
-            scaled_min = int(round(float(p25) * 0.35))
-            scaled_max = int(round(float(p75) * 0.70))
-            effective_min = max(floor, min(ceil - 2, max(1, scaled_min)))
-            effective_max = min(ceil, max(effective_min + 2, max(2, scaled_max)))
+            # Closed-bid must maximize ingredient coverage: keep trend prices
+            # competitive (no down-scaling).
+            effective_min = max(floor, min(ceil - 2, max(1, median)))
+            effective_max = min(ceil, max(effective_min + 2, max(2, p75)))
         else:
             fallback_by_direction = {
-                TrendDirection.LOW_COST: (2, 8),
-                TrendDirection.BALANCED: (3, 10),
-                TrendDirection.HIGH_COST: (4, 12),
+                TrendDirection.LOW_COST: (4, 12),
+                TrendDirection.BALANCED: (8, 18),
+                TrendDirection.HIGH_COST: (12, 30),
             }
             fallback_min, fallback_max = fallback_by_direction[trend_direction]
             effective_min = max(floor, int(fallback_min))
@@ -984,6 +982,22 @@ class PhaseRunner:
             effective_max_bid,
             self.config.portions_per_recipe,
         )
+        # Add a safety buffer on quantities so closed-bid covers recipes even
+        # when auction matching is partial.
+        extra_units = 0
+        for row in bids:
+            qty = max(1, int(row.get("quantity", 1)))
+            boost = max(1, qty // 3)
+            new_qty = qty + boost
+            row["quantity"] = new_qty
+            extra_units += new_qty - qty
+        if extra_units > 0:
+            log(
+                "BID",
+                f"Buffer quantità closed_bid applicato: +{extra_units} unità",
+                event="bid.quantity.buffer_applied",
+                extra_units=extra_units,
+            )
         self.state.ingredient_bids = bid_map
 
         # Breadth guardrail: keep line-count within what the budget can sustain.

@@ -1,0 +1,20 @@
+--- SERVING LOG (TURN 66) ---
+
+Cliente: Mira Quade           | Piatto: Risotto Cosmico Multiversale             | Stato: DELIVERED  | Incasso: 123cr
+Cliente: Cala Fenn            | Piatto: Rintocchi del Cosmo                      | Stato: DELIVERED  | Incasso: 205cr
+Cliente: Leona Dale           | Piatto: Galaxia Gustativa                        | Stato: DELIVERED  | Incasso: 95cr
+Cliente: Nolan Hawke          | Piatto: Risveglio Cosmico: Una Sinfonia di Sapori Universali | Stato: DELIVERED  | Incasso: 534cr
+Cliente: Miro Hatch           | Piatto: Galaxia Gustativa                        | Stato: PENDING   
+Cliente: Lio Kest             | Piatto: Galaxia Gustativa                        | Stato: PENDING   
+Cliente: Priya Jade           | Piatto: Rintocchi del Cosmo                      | Stato: DELIVERED  | Incasso: 205cr
+Cliente: Neris Quill          | Piatto: Sinfonia del Multiverso di Gusto         | Stato: PENDING   
+Cliente: Esme Wren            | Piatto: Galassia di Sapore                       | Stato: PENDING   
+
+--- REPORT VENDITE DEL TURNO ---
+- Risotto Cosmico Multiversale servito a Mira Quade: +123cr
+- Rintocchi del Cosmo servito a Cala Fenn: +205cr
+- Galaxia Gustativa servito a Leona Dale: +95cr
+- Risveglio Cosmico: Una Sinfonia di Sapori Universali servito a Nolan Hawke: +534cr
+- Rintocchi del Cosmo servito a Priya Jade: +205cr
+
+TOTALE INCASSO TURNO: 1162cr
