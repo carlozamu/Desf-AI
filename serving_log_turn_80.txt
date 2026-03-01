@@ -1,7 +1,0 @@
---- SERVING LOG (TURN 80) ---
-
-Cliente: Miraela Tyde         | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
-Cliente: Dora Kline           | Piatto: Nessun piatto associato                  | Stato: FAILED     | Dettaglio: Nessun piatto corrispondente trovato nel menu
-
---- REPORT VENDITE DEL TURNO ---
-Nessun ordine consegnato in questo turno.
