@@ -66,6 +66,14 @@ Analyze meals data and menus to understand price sensitivity per customer archet
 - 👨‍👩‍👧‍👦 Famiglia Orbitale: value-for-money, time-rich → balanced (estimated spend: X cr)
 Infer WTP from actual menu prices, which dishes were served, and competitor pricing.
 
+## 📈 CURRENT MARKET TREND
+Based on the meal orders and WTP, what is the current overall market trend?
+State CLEARLY whether it is:
+- **Low Cost** (High volume of cheap orders)
+- **High Quality** (High volume of expensive, premium orders)
+- **Both** (Mixed market)
+Explain your reasoning briefly.
+
 ## 🥗 TOP 20 INGREDIENTS
 From bid history: rank the 20 most contested/valuable ingredients.
 For each: rank, name, bidders count, avg bid, total qty wanted, scarcity assessment.
@@ -77,21 +85,32 @@ Sort all restaurants by balance descending. For each of the TOP 3:
 - Ingredient focus: what they seem to bid heavily on
 - ⚠️ BLIND SPOTS: Which customer archetypes or recipe categories are they ignoring? Identify high-demand dishes they do NOT offer or price poorly.
 
-## 🎯 RECOMMENDED RECIPES FOR NEXT RUN (Strictly MAX 2)
-Identify the ultimate "Moneyball" plays. You must suggest exactly 1 or 2 recipes to put on our menu that exploit the blind spots of the Top 3 competitors. Focus on high-demand items that top competitors under-invest in.
-For each:
+## 👑 BEST PRESTIGIOUS RECIPES (Max 2)
+Identify the ultimate "Premium" plays. Suggest exactly 2 high-prestige recipes to put on our menu to sell at a very high price, targeting Astrobarone or Saggio del Cosmo.
+Look at what the best players are doing and the ingredients they're buying. Ensure these dishes are highly profitable and prestigious enough to overcome high food costs.
 - Recipe name
-- Suggested price (credits)
+- Suggested premium price (credits)
 - Target archetype
-- Rationale: Why does this exploit a specific weakness of the top competitors?
+- Rationale & Ingredients needed: Why does this work specifically for premium customers?
+
+## 💸 BEST ECONOMICAL RECIPES (Beat the Competition)
+Identify cheap and highly profitable "Volume" plays. Suggest recipes that cost very little to make, are fast to cook, but can be priced aggressively to undercut competitors and steal budget-conscious customers (Esploratore Galattico / Famiglia Orbitale).
+- Recipe name
+- Suggested cheap price (credits)
+- Target archetype
+- Rationale & Competition: How do we beat competitors' prices for this tier?
+
+## 🔮 NEXT RUN HINTS & CLIENTELE INTEREST
+Look at the full pool of ~200 available recipes via `get_all_recipes()` and the actual meals ordered by the clientele in recent turns. 
+Identify broader trends for the next run: which recipes/ingredients represent an untapped goldmine based on current clientele interest? Provide 3 solid strategic tips on which recipe categories or specific dishes to invest heavily in the future.
 
 ## ⚡ EXTRA INTELLIGENCE
 - Market arbitrage: SELL offers cheap enough to resell at profit?
-- Top 5 bid targets for next auction: exactly which ingredients to buy to securely craft your 2 recommended recipes.
+- Top 5 bid targets for next auction: exactly which ingredients to buy to securely craft your recommended recipes.
 - Suggested bid amounts derived from recent bid competition data.
 
 ## 🤖 JSON EXECUTION PLAN
-Provide a strict JSON block (inside ```json ... ```) representing your exact recommended menu and bid strategy for the next turn. This will be copy-pasted directly into the game client.
+Provide a strict JSON block (inside ```json ... ```) representing your exact recommended menu and bid strategy for the next turn. Include both the prestigious and economical items.
 CRITICAL BUDGET RULE: The total cost of all bids (sum of amount * quantity) MUST be strictly less than our current Balance (fetched from `get_our_restaurant_state`). Do not bankrupt the restaurant.
 
 Use this exact format:
@@ -500,8 +519,9 @@ If any tool returns a ⚠️ warning (server unavailable / no data), note it cle
 report section and continue with what IS available.
 
 Then write the FULL report including every section:
-💰 WTP | 🥗 Top 20 ingredients | 🍕 Top 10 recipes | 🎯 Recommended menu |
-🏅 Top competitors deep dive | ⚡ Extra intelligence | 🏆 3 actions
+💰 WTP | 📈 Current market trend | 🥗 Top 20 ingredients | 🏅 Top competitors deep dive |
+👑 Best prestigious recipes | 💸 Best economical recipes | 🔮 Next run hints |
+⚡ Extra intelligence
 
 Our restaurant ID = {TEAM_ID}. Turns analyzed: {turns_str}.
 """
