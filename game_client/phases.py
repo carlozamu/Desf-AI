@@ -185,12 +185,39 @@ class PhaseRunner:
         trend_direction = analyze_trend_direction(trend_plan)
         self.state.trend_direction = trend_direction
 
-        # 2. Fetch all recipes
+        # 2. Fetch all recipes (top 50 by prestige)
         all_recipes = await self.api_client.get_recipes()
+        all_recipes = sorted(all_recipes, key=lambda r: r.get("prestige", 0), reverse=True)[:50]
         self.state.all_recipes = all_recipes
 
+        # 2b. Se il trend plan ha ricette consigliate, filtra il pool solo su quelle.
+        #     Fallback al pool completo se nessun nome corrisponde.
+        recipe_pool = all_recipes
+        if trend_plan is not None and trend_plan.menu:
+            trend_names: set[str] = {str(item["name"]) for item in trend_plan.menu}
+            filtered = [r for r in all_recipes if str(r.get("name", "")) in trend_names]
+            if filtered:
+                recipe_pool = filtered
+                log(
+                    "BID",
+                    f"Filtro trend: {len(filtered)} ricette su {len(all_recipes)} "
+                    f"({', '.join(str(r.get('name', '')) for r in filtered)})",
+                    event="bid.recipe_pool.filtered",
+                    pool_size=len(filtered),
+                    total_recipes=len(all_recipes),
+                )
+            else:
+                log(
+                    "BID",
+                    f"Filtro trend: nessuna corrispondenza per {len(trend_plan.menu)} "
+                    f"ricette raccomandate - uso pool completo",
+                    event="bid.recipe_pool.fallback",
+                    level="WARN",
+                    pool_size=len(all_recipes),
+                )
+
         # 3. Select 3 prestige-balanced recipes (one per tier)
-        self.state.target_recipes = select_prestige_balanced_recipes(all_recipes, trend_direction)
+        self.state.target_recipes = select_prestige_balanced_recipes(recipe_pool, trend_direction)
 
         if not self.state.target_recipes:
             log(
@@ -395,6 +422,7 @@ class PhaseRunner:
             if response is None:
                 log("SERVE", f"Preparazione '{dish_name}' fallita", event="dish.prepare.failed", level="ERROR", dish_name=dish_name)
             else:
+                self.state.dishes_preparing += 1
                 log("SERVE", f"'{dish_name}' messo in preparazione", event="dish.prepare.submitted", dish_name=dish_name)
             await asyncio.sleep(0.2)
 

@@ -205,13 +205,33 @@ class EventRouter:
         )
 
         # Rimettiamo in preparazione il piatto servito per rifornire la linea.
-        await self.mcp_gateway.call_tool("prepare_dish", {"dish_name": dish_name})
-        log(
-            "SERVE",
-            f"'{dish_name}' rimesso in preparazione",
-            event="dish.prepare.submitted",
-            dish_name=dish_name,
-        )
+        restock = await self.mcp_gateway.call_tool("prepare_dish", {"dish_name": dish_name})
+        if restock is None:
+            log(
+                "SERVE",
+                f"'{dish_name}' non può essere ripreparato (ingredienti esauriti)",
+                event="dish.prepare.out_of_stock",
+                level="WARN",
+                dish_name=dish_name,
+            )
+        else:
+            self.state.dishes_preparing += 1
+            log(
+                "SERVE",
+                f"'{dish_name}' rimesso in preparazione",
+                event="dish.prepare.submitted",
+                dish_name=dish_name,
+            )
+
+        # Chiudi SOLO se nessun piatto è pronto E nessuno è in preparazione.
+        any_ready = any(self.state.dishes_ready.get(str(i.get("name", "")).strip()) for i in self.state.active_menu)
+        if not any_ready and self.state.dishes_preparing == 0:
+            log(
+                "SERVE",
+                "Tutto venduto — chiusura ristorante",
+                event="restaurant.sold_out",
+            )
+            await self.mcp_gateway.call_tool("update_restaurant_is_open", {"is_open": False})
 
     async def preparation_complete(self, data: dict[str, Any]) -> None:
         dish_name = str(data.get("dish", "")).strip()
@@ -219,6 +239,7 @@ class EventRouter:
             return
 
         self.state.dishes_ready[dish_name] = True
+        self.state.dishes_preparing = max(0, self.state.dishes_preparing - 1)
         log("SERVE", f"Piatto '{dish_name}' pronto ✓", event="dish.prepare.completed", dish_name=dish_name)
 
     async def message(self, data: dict[str, Any]) -> None:

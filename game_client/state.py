@@ -16,6 +16,7 @@ class GameState:
     all_recipes: list[dict[str, Any]] = field(default_factory=list)
     active_menu: list[dict[str, Any]] = field(default_factory=list)
     dishes_ready: dict[str, bool] = field(default_factory=dict)
+    dishes_preparing: int = 0
     ingredient_bids: dict[str, int] = field(default_factory=dict)
     next_turn_trend_plan: "TrendPlan | None" = None
     trend_direction: "TrendDirection | None" = None
@@ -27,6 +28,7 @@ class GameState:
         self.all_recipes = []
         self.active_menu = []
         self.dishes_ready = {}
+        self.dishes_preparing = 0
         self.ingredient_bids = {}
         self.next_turn_trend_plan = None
         self.trend_direction = None
