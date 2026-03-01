@@ -25,8 +25,14 @@ async def fetch_and_save_bid_history(turn_id: int, api_key: str, base_url: str, 
     Fetches concluded bids for a specific turn and saves them to Firebase Firestore.
     The DB client is initialized internally.
     """
+    if int(turn_id) <= 0:
+        print(f"⚠️ Skipping bid history fetch: invalid turn_id={turn_id}")
+        return None
+
+    resolved_cred_path = cred_path or os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "firebase_credentials.json")
+
     # 1. Initialize DB inside the function
-    db = init_firebase(cred_path)
+    db = init_firebase(resolved_cred_path)
     if not db:
         print("❌ No Firestore client available. Aborting.")
         return None
@@ -62,6 +68,10 @@ async def fetch_and_save_bid_history(turn_id: int, api_key: str, base_url: str, 
                     
             elif response.status == 401:
                 print("❌ Unauthorized (401): Check your SERVER_API_KEY.")
+                return None
+            elif response.status == 400:
+                error_text = await response.text()
+                print(f"⚠️ Bid history request ignored (HTTP 400): {error_text}")
                 return None
             else:
                 error_text = await response.text()
