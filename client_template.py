@@ -28,6 +28,7 @@ except ImportError as _e:
 from datapizza.tools.mcp_client import MCPClient
 from serving.meals_tracker import collect_turn_meals, init_firebase, save_to_firebase as save_meals_to_firebase, summarize_unserved_requests
 from serving.menu_tracker import collect_all_menus, save_to_firebase as save_menus_to_firebase
+from market_monitoring.market_tracker import collect_market_snapshot, save_to_firebase as save_market_to_firebase
 from price_analyst.bid_tracker import fetch_and_save_bid_history
 from menu_pricing import compute_menu_price
 
@@ -488,9 +489,10 @@ async def end_turn() -> None:
         return
 
     try:
-        meals_data, menus_data = await asyncio.gather(
+        meals_data, menus_data, market_snapshot = await asyncio.gather(
             collect_turn_meals(CURRENT_TURN_ID),
             collect_all_menus(),
+            collect_market_snapshot(),
         )
 
         tasks: list[Awaitable[Any]] = []
@@ -498,27 +500,36 @@ async def end_turn() -> None:
             tasks.append(
                 asyncio.to_thread(
                     save_meals_to_firebase,
-                    db,
-                    CURRENT_TURN_ID,
-                    RUN_ID,
-                    meals_data,
+                    db, CURRENT_TURN_ID, RUN_ID, meals_data,
                 )
             )
+        else:
+            log("TRACK", "⚠️  Nessun dato meals.")
         if menus_data:
             tasks.append(
                 asyncio.to_thread(
                     save_menus_to_firebase,
-                    db,
-                    CURRENT_TURN_ID,
-                    RUN_ID,
-                    menus_data,
+                    db, CURRENT_TURN_ID, RUN_ID, menus_data,
                 )
             )
+        else:
+            log("TRACK", "⚠️  Nessun dato menus.")
+        if market_snapshot:
+            tasks.append(
+                asyncio.to_thread(
+                    save_market_to_firebase,
+                    db, CURRENT_TURN_ID, RUN_ID, market_snapshot,
+                )
+            )
+        else:
+            log("TRACK", "⚠️  Nessun dato market.")
 
         if tasks:
             await asyncio.gather(*tasks)
+            log("TRACK", f"✅ Turn {CURRENT_TURN_ID}: meals, menus e market salvati su Firebase.")
     except Exception as exc:
         log("TRACK", f"Errore salvataggio tracker: {exc}")
+
 
 
 async def game_phase_changed(data: dict[str, Any]) -> None:
