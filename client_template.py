@@ -18,6 +18,10 @@ import aiohttp
 from price_analyst.bid_tracker import fetch_and_save_bid_history
 from price_analyst.agent import get_bidding_prices
 
+# TREND ANALYST IMPORT
+from trend_analyst.trend_analyst_agent import a_run_trend_analysis, extract_json_plan
+from trend_analyst.executor import apply_trend_plan
+
 
 import os
 from dotenv import load_dotenv
@@ -35,6 +39,7 @@ if not TEAM_API_KEY or not TEAM_ID:
 
 # GLOBALE VARIAVLE TO STORE the TURNEMENT
 CURRENT_TURN_ID = None
+TREND_ANALYSIS_TASK = None
 
 
 def log(tag: str, message: str) -> None:
@@ -54,33 +59,58 @@ async def game_started(data: dict[str, Any]) -> None:
 
 async def speaking_phase_started() -> None:
     log("EVENT", "speaking phase started")
+    
+    global CURRENT_TURN_ID, TREND_ANALYSIS_TASK
+    if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
+        log("AGENT", "Starting Trend Analysis in background...")
+        # Previous turns to analyze for context (e.g. last 3 turns)
+        prev_turns = [t for t in range(max(1, CURRENT_TURN_ID-3), CURRENT_TURN_ID)]
+        # We start the analysis task - it will run in parallel with the speaking phase
+        TREND_ANALYSIS_TASK = asyncio.create_task(
+            a_run_trend_analysis(turn_id=CURRENT_TURN_ID, previous_turns=prev_turns)
+        )
+    else:
+        log("AGENT", "Skip Trend Analysis for turn 0.")
 
 
 async def closed_bid_phase_started() -> None:
     log("EVENT", "closed bid phase started")
     
-    global CURRENT_TURN_ID
+    global CURRENT_TURN_ID, TREND_ANALYSIS_TASK
     if CURRENT_TURN_ID is not None and CURRENT_TURN_ID > 0:
-        log("AGENT", f"Calculating bid prices for turn {CURRENT_TURN_ID}...")
-        
-        # We run the agent synchronously in a separate thread so we don't block the asyncio event loop
-        prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
-        
-        if prices:
-            log("AGENT", f"Suggested Prices: {json.dumps(prices, indent=2)}")
-            # FUTURE: Submit these bids to the server using the team API
-            
-            # --- START BIDDING PIPELINE ---
-            from bidder.bidder import place_bids_for_turn
-            
+        # 1. Check if Trend Analysis is ready
+        if TREND_ANALYSIS_TASK:
+            log("AGENT", "Waiting for Trend Analysis report...")
             try:
-                log("AGENT", f"Placing bids for turn {CURRENT_TURN_ID}...")
-                await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
+                report_md = await TREND_ANALYSIS_TASK
+                log("AGENT", "Trend Analysis report received!")
                 
-                log("AGENT", "Bidding pipeline execution completed.")
+                # 2. Extract and Apply Plan
+                plan = extract_json_plan(report_md)
+                if plan:
+                    log("AGENT", f"Extracted Strategy: {json.dumps(plan, indent=2)}")
+                    await apply_trend_plan(plan)
+                    log("AGENT", "Trend Strategy applied successfully.")
+                else:
+                    log("WARNING", "No JSON strategy found in Trend Analysis report. Falling back to Price Analyst.")
+                    # Fallback to the old price analyst if trend analyst fails to produce a plan
+                    prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+                    if prices:
+                        from bidder.bidder import place_bids_for_turn
+                        await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
             except Exception as e:
-                log("ERROR", f"Failed to execute bidding pipeline: {e}")
-            # --- END BIDDING PIPELINE ---
+                log("ERROR", f"Trend Analysis execution failed: {e}. Falling back...")
+                # Fallback to Price Analyst on error
+                prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+                if prices:
+                    from bidder.bidder import place_bids_for_turn
+                    await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
+        else:
+            log("AGENT", "No Trend Analysis task found. Using default Price Analyst.")
+            prices = await asyncio.to_thread(get_bidding_prices, CURRENT_TURN_ID)
+            if prices:
+                from bidder.bidder import place_bids_for_turn
+                await place_bids_for_turn(turn_id=CURRENT_TURN_ID, prices=prices)
     else:
         log("AGENT", "Skip pricing calculation for turn 0 or unknown turn.")
 

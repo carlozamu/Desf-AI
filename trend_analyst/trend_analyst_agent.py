@@ -503,3 +503,25 @@ async def a_run_trend_analysis(turn_id: int, previous_turns: Optional[List[int]]
     """Async-safe wrapper. Runs sync analysis in a thread pool executor."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, run_trend_analysis, turn_id, previous_turns)
+
+
+def extract_json_plan(report_md: str) -> Optional[Dict]:
+    """
+    Extracts the JSON execution plan from the agent's markdown report.
+    Looks for the first JSON block inside the report.
+    """
+    import re
+    import json
+    
+    # Match ```json { ... } ```
+    match = re.search(r"```json\s*(\{.*?\})\s*```", report_md, re.DOTALL)
+    if not match:
+        logger.warning("No JSON execution plan found in the report.")
+        return None
+        
+    try:
+        plan = json.loads(match.group(1))
+        return plan
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON plan: {e}")
+        return None
