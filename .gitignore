@@ -6,4 +6,6 @@ firebase_credentials.json
 
 **/__pycache__/
 
-domenicAIn_hackapizza-main/
+domenicAIn_hackapizza-main/.DS_Store
+__pycache__/
+.ipynb_checkpoints/
